@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" role="img" aria-labelledby="title desc">
+  <title id="title">maintain.help — Find open source that needs you.</title>
+  <desc id="desc">A dark banner with lime accents connecting contributors, reviewers, and maintainers to open-source projects.</desc>
+  <defs>
+    <radialGradient id="glow" cx="90%" cy="20%" r="80%">
+      <stop stop-color="#24352b"/>
+      <stop offset="1" stop-color="#0c1110"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 H 0 V 40" fill="none" stroke="#b8fa73" stroke-opacity=".045"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="440" rx="24" fill="url(#glow)"/>
+  <rect width="1280" height="440" rx="24" fill="url(#grid)"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="56" y="46" width="44" height="44" rx="12" fill="#c2fa83"/>
+    <text x="65" y="77" font-size="30" font-weight="700" fill="#101710">m.</text>
+    <text x="116" y="76" font-size="25" font-weight="700" fill="#f1f5ef">maintain.help</text>
+    <text x="56" y="164" font-size="12" font-weight="700" letter-spacing="3" fill="#c2fa83">SMALL CONTRIBUTIONS. LASTING IMPACT.</text>
+    <text x="52" y="229" font-size="58" font-weight="700" letter-spacing="-2" fill="#f1f5ef">Find open source</text>
+    <text x="52" y="293" font-size="58" font-weight="700" letter-spacing="-2" fill="#c2fa83">that needs you.</text>
+    <text x="56" y="340" font-size="18" fill="#a9b6ac">Discover your next project. See the evidence. Make a difference.</text>
+    <path d="M 856 151 V 303 M 856 227 H 900 M 856 151 H 900 M 856 303 H 900" fill="none" stroke="#c2fa83" stroke-opacity=".35" stroke-width="2"/>
+    <g fill="#152019" stroke="#384a3b">
+      <rect x="900" y="119" width="304" height="64" rx="14"/>
+      <rect x="900" y="195" width="304" height="64" rx="14"/>
+      <rect x="900" y="271" width="304" height="64" rx="14"/>
+    </g>
+    <g fill="#c2fa83">
+      <circle cx="924" cy="151" r="4"/>
+      <circle cx="924" cy="227" r="4"/>
+      <circle cx="924" cy="303" r="4"/>
+      <circle cx="856" cy="227" r="6"/>
+    </g>
+    <g font-size="18" fill="#e7eee4">
+      <text x="944" y="157">Contributors</text>
+      <text x="944" y="233">Reviewers</text>
+      <text x="944" y="309">Maintainers</text>
+    </g>
+    <text x="56" y="402" font-size="11" letter-spacing="2" fill="#819386">BUILT AROUND EVIDENCE. POWERED BY PEOPLE.</text>
+  </g>
+</svg>
