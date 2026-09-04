@@ -1,0 +1,2 @@
+ALTER TABLE "Repository" ALTER COLUMN "githubId" TYPE BIGINT USING "githubId"::BIGINT;
+ALTER TABLE "GitHubIssue" ALTER COLUMN "githubIssueId" TYPE BIGINT USING "githubIssueId"::BIGINT;

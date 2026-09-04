@@ -1,0 +1,432 @@
+// maintain.help — Prisma schema
+// Discovery platform for open-source repositories that need help.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Clerk identity; legacy auth tables retained for a non-destructive migration.
+// ---------------------------------------------------------------------------
+
+model User {
+  id          String  @id @default(cuid())
+  clerkId     String? @unique
+  githubId    String? @unique
+  githubLogin String? @unique
+  name        String?
+  email       String? @unique
+  image       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts              Account[]
+  sessions              Session[]
+  maintainerRequests    MaintainerRequest[]
+  repositoryMaintainers RepositoryMaintainer[]
+  savedRepositories     SavedRepository[]
+  classificationReviews RepositoryClassificationReview[]
+  repositoryFeedback    RepositoryFeedback[]
+  submittedRepositories Repository[]                     @relation("SubmittedRepositories")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum HelpStatus {
+  ACTIVELY_ASKING
+  SEEKING_MAINTAINERS
+  LIKELY_NEEDS_HELP
+  MAINTENANCE_MODE
+  HEALTHY
+}
+
+enum ConfidenceLevel {
+  VERIFIED
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum HelpCategory {
+  CODE
+  DOCUMENTATION
+  TESTING
+  ISSUE_TRIAGE
+  PR_REVIEW
+  DESIGN
+  TRANSLATION
+  DEVOPS_CI
+  SECURITY
+  MAINTAINER
+  CO_MAINTAINER
+}
+
+enum EvidenceType {
+  EXPLICIT_STATEMENT
+  LABEL
+  METRIC
+  INFERENCE
+}
+
+enum EvidenceSourceType {
+  README
+  CONTRIBUTING
+  GITHUB_ISSUE
+  GITHUB_DISCUSSION
+  REPOSITORY_METADATA
+  COMMIT_ACTIVITY
+  PULL_REQUESTS
+  RELEASES
+  CALCULATED_METRIC
+}
+
+enum WantedHelpStatus {
+  NEED_CONTRIBUTORS
+  NEED_COMAINTAINERS
+  NEED_MAINTAINER
+  NEED_PR_REVIEWERS
+  NEED_ISSUE_TRIAGE
+  NEED_DOCUMENTATION_HELP
+  NOT_LOOKING
+}
+
+enum RepositoryAvailability {
+  AVAILABLE
+  UNAVAILABLE
+  PRIVATE
+  DELETED
+  UNKNOWN
+}
+
+enum ClassificationVerdict {
+  CORRECT
+  FALSE_POSITIVE
+  FALSE_NEGATIVE
+  NEEDS_REVIEW
+}
+
+enum RepositoryFeedbackType {
+  NEED_CONTRIBUTORS
+  NEED_COMAINTAINERS
+  NEED_SUCCESSOR
+  NOT_LOOKING
+  INTENTIONALLY_STABLE
+  INACCURATE
+}
+
+// ---------------------------------------------------------------------------
+// Core repository model
+// ---------------------------------------------------------------------------
+
+model Repository {
+  id       String @id @default(cuid())
+  githubId BigInt @unique
+
+  owner       String
+  name        String
+  fullName    String  @unique
+  description String? @db.Text
+  url         String
+  homepage    String?
+
+  primaryLanguage String?
+  languages       Json? // { [language]: bytes }
+  topics          String[]
+  labels          String[] @default([])
+
+  stars          Int @default(0)
+  forks          Int @default(0)
+  watchers       Int @default(0)
+  openIssueCount Int @default(0)
+
+  isArchived Boolean @default(false)
+  isFork     Boolean @default(false)
+
+  createdAtGithub  DateTime
+  pushedAt         DateTime?
+  latestReleaseTag String?
+  latestReleaseAt  DateTime?
+  license          String?
+  defaultBranch    String    @default("main")
+
+  // maintain.help classification
+  status           HelpStatus      @default(HEALTHY)
+  statusConfidence ConfidenceLevel @default(LOW)
+  statusVerified   Boolean         @default(false)
+  statusReason     String?         @db.Text
+
+  capacityPressureScore Int?
+  beginnerFriendlyScore Int?
+  isBeginnerFriendly    Boolean @default(false)
+
+  // Ingestion bookkeeping
+  isFixture       Boolean                @default(false)
+  isIndexed       Boolean                @default(true)
+  lastAnalyzedAt  DateTime?
+  nextAnalysisAt  DateTime?
+  analysisVersion Int                    @default(1)
+  analysisError   String?                @db.Text
+  availability    RepositoryAvailability @default(AVAILABLE)
+
+  submittedById String?
+  submittedBy   User?   @relation("SubmittedRepositories", fields: [submittedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  helpCategories        RepositoryHelpCategory[]
+  evidence              RepositoryEvidence[]
+  metricSnapshots       RepositoryMetricSnapshot[]
+  issues                GitHubIssue[]
+  maintainers           RepositoryMaintainer[]
+  maintainerRequests    MaintainerRequest[]
+  savedBy               SavedRepository[]
+  statusHistory         RepositoryStatus[]
+  classificationReviews RepositoryClassificationReview[]
+  feedback              RepositoryFeedback[]
+
+  @@index([owner, name])
+  @@index([status])
+  @@index([stars])
+  @@index([primaryLanguage])
+  @@index([nextAnalysisAt])
+}
+
+/// Historical log of status transitions, kept for trend analysis.
+model RepositoryStatus {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  status          HelpStatus
+  confidence      ConfidenceLevel
+  verified        Boolean         @default(false)
+  reason          String?         @db.Text
+  analysisVersion Int             @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([repositoryId, createdAt])
+}
+
+model RepositoryHelpCategory {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  category HelpCategory
+  verified Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([repositoryId, category])
+}
+
+/// Every important conclusion maintain.help draws should be backed by one of these.
+model RepositoryEvidence {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  type        EvidenceType
+  title       String
+  description String             @db.Text
+  sourceUrl   String?
+  sourceType  EvidenceSourceType
+  confidence  ConfidenceLevel
+
+  discoveredAt DateTime @default(now())
+
+  @@index([repositoryId])
+}
+
+model RepositoryMetricSnapshot {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  capturedAt      DateTime @default(now())
+  analysisVersion Int      @default(1)
+
+  stars            Int
+  forks            Int
+  openIssues       Int
+  openPullRequests Int
+
+  newIssuesLast90d          Int @default(0)
+  closedIssuesLast90d       Int @default(0)
+  newPullRequestsLast90d    Int @default(0)
+  closedPullRequestsLast90d Int @default(0)
+
+  commitsLast30d  Int @default(0)
+  commitsLast90d  Int @default(0)
+  commitsLast365d Int @default(0)
+
+  activeMaintainersLast90d  Int @default(0)
+  activeMaintainersLast365d Int @default(0)
+
+  medianOpenIssueAgeDays  Float?
+  medianOpenPrAgeDays     Float?
+  medianPrReviewTimeHours Float?
+
+  daysSinceLastCommit  Int?
+  daysSinceLastRelease Int?
+
+  helpWantedIssueCount Int @default(0)
+  goodFirstIssueCount  Int @default(0)
+
+  capacityPressureScore Int?
+  beginnerFriendlyScore Int?
+
+  @@index([repositoryId, capturedAt])
+}
+
+model GitHubIssue {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  githubIssueId BigInt
+  number        Int
+  title         String
+  url           String
+  state         String // "open" | "closed"
+  labels        String[]
+  isPullRequest Boolean  @default(false)
+
+  createdAtGithub DateTime
+  updatedAtGithub DateTime
+  closedAtGithub  DateTime?
+  commentCount    Int       @default(0)
+
+  category HelpCategory?
+
+  @@unique([repositoryId, githubIssueId])
+  @@index([repositoryId, state])
+  @@index([repositoryId, isPullRequest, state])
+}
+
+model RepositoryMaintainer {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  githubLogin     String
+  role            String    @default("maintainer") // owner | maintainer | contributor
+  commitsLast365d Int       @default(0)
+  isActive        Boolean   @default(true)
+  verifiedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([repositoryId, githubLogin])
+}
+
+/// A verified maintainer's self-reported help request. Overrides inferred status.
+model MaintainerRequest {
+  id           String     @id @default(cuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  status       WantedHelpStatus
+  skillsWanted String[]
+  message      String?          @db.Text
+  isActive     Boolean          @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([repositoryId])
+}
+
+model SavedRepository {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, repositoryId])
+}
+
+model RepositoryClassificationReview {
+  id             String                @id @default(cuid())
+  repositoryId   String
+  repository     Repository            @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  reviewerUserId String?
+  reviewer       User?                 @relation(fields: [reviewerUserId], references: [id], onDelete: SetNull)
+  verdict        ClassificationVerdict
+  expectedStatus HelpStatus?
+  notes          String?               @db.Text
+  falsePositive  Boolean               @default(false)
+  falseNegative  Boolean               @default(false)
+  createdAt      DateTime              @default(now())
+
+  @@index([repositoryId, createdAt])
+}
+
+model RepositoryFeedback {
+  id           String                 @id @default(cuid())
+  repositoryId String
+  repository   Repository             @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         RepositoryFeedbackType
+  notes        String?                @db.Text
+  trusted      Boolean                @default(false)
+  createdAt    DateTime               @default(now())
+
+  @@index([repositoryId, createdAt])
+  @@index([userId, createdAt])
+}

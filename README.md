@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# maintain.help
+
+Evidence-backed discovery for open-source repositories that are asking for help or showing capacity pressure.
 
 ## Getting Started
 
-First, run the development server:
+Copy `.env.example` to `.env`, configure Postgres and GitHub credentials, then run:
 
 ```bash
+npm run db:migrate
+npm run db:generate
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For the embedded local database, run `npm run db:dev` in a separate terminal,
+use its TCP database URL, and set `PRISMA_DEV_DATABASE="true"` in `.env`.
+The app and seed script then use one connection per process and promptly close
+idle connections. Prisma v7's `pg` adapter needs these pool options explicitly;
+the old `connection_limit` URL parameter does not configure its pool.
+Leave this flag false for real Postgres. Restart Next.js after changing it.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If the embedded server returns `Connection terminated unexpectedly` after
+builds/restarts, stop it with `npx prisma dev stop default`, then restart it
+with `npm run db:dev`. Its socket layer can retain stale connection slots even
+when the port is still listening. Restarting preserves all data; do not reset
+or remove the database. This is a local database limitation, not a Clerk error.
 
-## Learn More
+## Validation commands
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run calibrate:ingest
+npm run analyze:repo -- owner/repo
+npm test
+npm run typecheck
+npm run lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`calibrate:ingest` indexes the controlled set in `scripts/calibrate-ingest.ts`. `analyze:repo` ingests one repository and prints a readable analysis summary.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Internal routes
 
-## Deploy on Vercel
+- `/admin/calibration` requires the signed-in GitHub login in `ADMIN_GITHUB_LOGINS`.
+- `/api/admin/ingest` accepts a bounded repository list or GitHub search query.
+- `/api/cron/analyze-repositories` requires `Authorization: Bearer $CRON_SECRET`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+GitHub tokens remain server-only.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Authentication (Clerk, GitHub only)
+
+Create a Clerk application with GitHub enabled and every other sign-in method
+(including email/password, phone and Google) disabled. Copy its
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` into your ignored `.env`.
+Only the publishable key belongs in browser code. Keep `GITHUB_ANALYSIS_TOKEN`
+separate: it is for public repository ingestion, never user permissions.
+
+The integration follows the [Clerk Next.js quickstart](https://clerk.com/docs/nextjs/getting-started/quickstart).
+`/sign-in` uses Clerk's hosted UI components; `src/proxy.ts` establishes sessions.
+Public discovery remains public, with permission checks in server actions and API routes.
+GitHub sign-up uses the same screen. Claim checks retrieve the current user's
+GitHub OAuth token from Clerk on the server.
+
+For production, create a Clerk production instance, configure the maintain.help
+domain and the GitHub connection using Clerk's callback URL (not the old
+`/api/auth/callback/github` URL), and set that instance's keys in your hosting environment.
+Clerk's development GitHub connection uses shared credentials by default.
+Do not add private-repository scopes merely for public discovery; organization
+OAuth policies can still require an organization owner to approve claim checks.
+
+Apply migrations with `npx prisma migrate deploy`, then `npm run db:generate`.
+The Clerk migration only adds nullable, unique `User.clerkId`. On first sign-in,
+the verified GitHub numeric ID links the existing local user, preserving saves,
+claims and reviews. Email/username matching is never used to merge accounts.
+Legacy auth tables remain inert to avoid deleting existing data; no old sessions
+or stored OAuth tokens are accepted. NextAuth and its environment variables are
+no longer used. A GitHub identity already linked to a different Clerk user fails
+closed and needs a deliberate administrative reconciliation.
