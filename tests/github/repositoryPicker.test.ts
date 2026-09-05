@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ search: "", owner: "", index: 0 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@clerk/nextjs", () => ({ useUser: () => ({ user: null }) }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useState: (initial: unknown) => [[state.search, state.owner][state.index++] ?? initial, vi.fn()],
@@ -36,4 +37,11 @@ it("explains empty search results within the selected organization", () => {
   state.owner = "team";
   state.search = "missing";
   expect(renderToStaticMarkup(AddRepositoryForm({ repositories }))).toContain("No repositories match your search in team.");
+});
+
+it("shows memberships even when the organization has no eligible repositories", () => {
+  state.owner = "empty-org";
+  const html = renderToStaticMarkup(AddRepositoryForm({ repositories, organizations: ["empty-org", "team"], personalLogin: "alice" }));
+  expect(html).toContain(">empty-org</button>");
+  expect(html).toContain("No eligible public repositories are available in empty-org.");
 });

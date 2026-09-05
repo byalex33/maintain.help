@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AddRepositoryForm } from "@/components/add/add-repository-form";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
-import { getAddablePublicRepositories } from "@/lib/github/ownedRepositories";
+import { getAddablePublicRepositories, getGitHubOrganizations } from "@/lib/github/ownedRepositories";
 
 export const metadata: Metadata = {
   title: "Add a repository",
@@ -16,9 +16,20 @@ export default async function AddRepositoryPage() {
   if (!session) redirect("/sign-in?callbackUrl=%2Fadd");
   let repositories: Awaited<ReturnType<typeof getAddablePublicRepositories>> = [];
   let error: string | null = null;
+  let organizations: string[] = [];
+  let organizationsUnavailable = false;
   try {
     const token = await getGitHubAccessToken(session.user.id);
-    if (token) repositories = await getAddablePublicRepositories(token, session.user.githubId);
+    if (token) {
+      const [repos, orgs] = await Promise.allSettled([
+        getAddablePublicRepositories(token, session.user.githubId),
+        getGitHubOrganizations(token),
+      ]);
+      if (repos.status === "rejected") throw repos.reason;
+      repositories = repos.value;
+      if (orgs.status === "fulfilled") organizations = orgs.value;
+      else organizationsUnavailable = true;
+    }
     else error = "GitHub access is unavailable. Sign out, then sign in with GitHub again to reconnect.";
   } catch {
     error = "We couldn't load your GitHub repositories. Please try again shortly.";
@@ -38,7 +49,7 @@ export default async function AddRepositoryPage() {
               <button type="submit" className="text-sm underline">Try again</button>
             </form>
           </div>
-        ) : <AddRepositoryForm repositories={repositories} />}
+        ) : <AddRepositoryForm repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} />}
       </div>
     </div>
   );

@@ -1,26 +1,51 @@
 "use client";
 
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export function AddRepositoryForm({ repositories }: {
+export function AddRepositoryForm({ repositories, organizations = [], personalLogin, organizationsUnavailable = false }: {
   repositories: { id: number; fullName: string; description: string | null; url: string }[];
+  organizations?: string[];
+  personalLogin?: string;
+  organizationsUnavailable?: boolean;
 }) {
   const router = useRouter();
+  const { user } = useUser();
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const owners = [...new Set(repositories.map((repo) => repo.fullName.split("/")[0]))].sort((a, b) => a.localeCompare(b));
+  const [connecting, setConnecting] = useState(false);
+  const owners = [...new Set([
+    ...(personalLogin ? [personalLogin] : []), ...organizations,
+    ...repositories.map((repo) => repo.fullName.split("/")[0]),
+  ])].sort((a, b) => a.localeCompare(b));
   const matches = repositories.filter((repo) =>
     (!owner || repo.fullName.split("/")[0] === owner) &&
     repo.fullName.toLowerCase().includes(search.trim().toLowerCase())
   );
+
+  async function connectOrganizations() {
+    setConnecting(true);
+    setError(null);
+    try {
+      const account = user?.verifiedExternalAccounts.find((account) => account.provider === "github");
+      if (!account) throw new Error("GitHub account unavailable");
+      const result = await account.reauthorize({ additionalScopes: ["read:org"], redirectUrl: "/add" });
+      const url = result.verification?.externalVerificationRedirectURL;
+      if (!url) throw new Error("GitHub redirect unavailable");
+      window.location.assign(url.href);
+    } catch {
+      setError("Could not connect your organizations. Please try again.");
+      setConnecting(false);
+    }
+  }
 
   async function addRepository(repository: typeof repositories[number]) {
     setSelectedId(repository.id);
@@ -65,10 +90,17 @@ export function AddRepositoryForm({ repositories }: {
           </Button>
         ))}
       </div>
+      {organizationsUnavailable ? <p role="status" className="text-sm text-neutral-500">We couldn&rsquo;t load your organizations. Connect GitHub organization access, then retry if needed.</p> : null}
+      <div className="text-sm text-neutral-500">
+        <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="underline disabled:opacity-50">
+          {connecting ? "Connecting…" : "Connect organizations"}
+        </button>
+        <p className="mt-1">Allow GitHub to share your organization memberships, including private memberships.</p>
+      </div>
       {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-      {repositories.length === 0 ? <p className="text-sm text-neutral-500">No public repositories with owner, admin, or maintainer access were found.</p> : null}
-      {repositories.length > 0 && matches.length === 0 ? (
-        <p className="text-sm text-neutral-500">No repositories match your search{owner ? ` in ${owner}` : ""}.</p>
+      {repositories.length === 0 && !owner ? <p className="text-sm text-neutral-500">No public repositories with owner, admin, or maintainer access were found.</p> : null}
+      {(repositories.length > 0 || owner) && matches.length === 0 ? (
+        <p className="text-sm text-neutral-500">{owner && !search.trim() ? `No eligible public repositories are available in ${owner}. You need admin or maintainer access, and the organization must allow this GitHub connection.` : `No repositories match your search${owner ? ` in ${owner}` : ""}.`}</p>
       ) : null}
       <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
         {matches.map((repo) => (

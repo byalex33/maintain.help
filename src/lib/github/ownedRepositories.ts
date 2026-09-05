@@ -1,6 +1,12 @@
 import "server-only";
 import { Octokit } from "@octokit/rest";
 
+export async function getGitHubOrganizations(token: string) {
+  const github = new Octokit({ auth: token });
+  const organizations = await github.paginate(github.orgs.listForAuthenticatedUser, { per_page: 100 });
+  return organizations.map((organization) => organization.login);
+}
+
 export function canAddPublicRepository(
   repository: { private: boolean; owner: { id: number } | null; permissions?: { admin?: boolean; maintain?: boolean } },
   githubId: string,
