@@ -38,6 +38,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <h1 className="text-3xl font-semibold tracking-tight">Repositories</h1>
       <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Manage listings, handle reports, and keep the directory useful.</p>
     </div>
+    <nav aria-label="Admin sections" className="flex gap-2">
+      <Button asChild variant="secondary" size="sm"><Link href="/admin" aria-current="page">Repositories</Link></Button>
+      <Button asChild variant="ghost" size="sm"><Link href="/admin/users">Users</Link></Button>
+    </nav>
     <Card className="space-y-4 p-4 sm:p-5">
       <nav aria-label="Repository views" className="flex flex-wrap gap-1">
         {[["", "All repositories"], ["reports", "Reports"], ["locked", "Locked"], ["deleted", "Deleted"]].map(([key, label]) => <Button key={key} asChild variant={view === key ? "secondary" : "ghost"} size="sm"><Link href={`/admin?${new URLSearchParams({ view: key, q: query })}`} aria-current={view === key ? "page" : undefined}>{label}</Link></Button>)}
