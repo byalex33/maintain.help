@@ -12,10 +12,15 @@ export function AddRepositoryForm({ repositories }: {
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [owner, setOwner] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const matches = repositories.filter((repo) => repo.fullName.toLowerCase().includes(search.trim().toLowerCase()));
+  const owners = [...new Set(repositories.map((repo) => repo.fullName.split("/")[0]))].sort((a, b) => a.localeCompare(b));
+  const matches = repositories.filter((repo) =>
+    (!owner || repo.fullName.split("/")[0] === owner) &&
+    repo.fullName.toLowerCase().includes(search.trim().toLowerCase())
+  );
 
   async function addRepository(repository: typeof repositories[number]) {
     setSelectedId(repository.id);
@@ -52,10 +57,18 @@ export function AddRepositoryForm({ repositories }: {
         aria-label="Find one of your repositories"
         className="h-11"
       />
+      <div role="group" aria-label="Filter by account or organization" className="flex flex-wrap gap-2">
+        {["", ...owners].map((account) => (
+          <Button key={account} type="button" size="sm" variant={owner === account ? "secondary" : "outline"}
+            aria-pressed={owner === account} onClick={() => setOwner(account)}>
+            {account || "All accounts"}
+          </Button>
+        ))}
+      </div>
       {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       {repositories.length === 0 ? <p className="text-sm text-neutral-500">No public repositories with owner, admin, or maintainer access were found.</p> : null}
       {repositories.length > 0 && matches.length === 0 ? (
-        <p className="text-sm text-neutral-500">No repositories match your search.</p>
+        <p className="text-sm text-neutral-500">No repositories match your search{owner ? ` in ${owner}` : ""}.</p>
       ) : null}
       <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
         {matches.map((repo) => (
