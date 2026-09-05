@@ -41,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <ClerkProvider appearance={{ elements: { footer: { display: "none" } } }} signInUrl="/sign-in" signUpUrl="/sign-in" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
+        <ClerkProvider appearance={{ elements: { footer: { display: "none" }, footerItem: { display: "none" } } }} signInUrl="/sign-in" signUpUrl="/sign-in" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />

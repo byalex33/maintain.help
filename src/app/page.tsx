@@ -2,13 +2,14 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { HeroSearch } from "@/components/home/hero-search";
+import { FeaturedRepository } from "@/components/home/featured-repository";
 import { RepoSection } from "@/components/repo/repo-section";
 import { getHomepageSections } from "@/lib/queries/repositories";
 
 export default async function HomePage() {
   const sections = await getHomepageSections();
 
-  const hasAnyData =
+  const hasAnyData = sections.featured ||
     sections.seekingMaintainers.length +
       sections.activelyAsking.length +
       sections.goodFirstProjects.length +
@@ -44,6 +45,12 @@ export default async function HomePage() {
       <div className="mx-auto max-w-6xl divide-y divide-neutral-100 px-4 dark:divide-neutral-900">
         {hasAnyData ? (
           <>
+            {sections.featured ? (
+              <section aria-labelledby="featured-heading" className="py-8">
+                <h2 id="featured-heading" className="mb-4 text-lg font-semibold tracking-tight">Featured</h2>
+                <FeaturedRepository repo={sections.featured} />
+              </section>
+            ) : null}
             <RepoSection
               title="Seeking maintainers"
               description="Projects explicitly looking for maintainers, co-maintainers, or a successor."

@@ -49,6 +49,7 @@ async function findRepos(where: Prisma.RepositoryWhereInput, take: number, order
 }
 
 export interface HomepageSections {
+  featured: RepositoryCard | null;
   seekingMaintainers: RepositoryCard[];
   activelyAsking: RepositoryCard[];
   goodFirstProjects: RepositoryCard[];
@@ -59,6 +60,7 @@ export interface HomepageSections {
 
 export async function getHomepageSections(): Promise<HomepageSections> {
   const [
+    featured,
     seekingMaintainers,
     activelyAsking,
     goodFirstProjects,
@@ -66,6 +68,7 @@ export async function getHomepageSections(): Promise<HomepageSections> {
     needsDocumentationHelp,
     trending,
   ] = await Promise.all([
+    db.repository.findFirst({ where: { isIndexed: true, isFeatured: true }, select: repositoryCardSelect }),
     findRepos({ status: HelpStatus.SEEKING_MAINTAINERS }, 6),
     findRepos({ status: HelpStatus.ACTIVELY_ASKING }, 6),
     findRepos({ isBeginnerFriendly: true }, 6),
@@ -78,7 +81,7 @@ export async function getHomepageSections(): Promise<HomepageSections> {
     ),
   ]);
 
-  return { seekingMaintainers, activelyAsking, goodFirstProjects, needsPrReviewers, needsDocumentationHelp, trending };
+  return { featured, seekingMaintainers, activelyAsking, goodFirstProjects, needsPrReviewers, needsDocumentationHelp, trending };
 }
 
 export interface ExploreFilters {
@@ -189,9 +192,9 @@ export async function searchRepositories(query: string, take = 8) {
   });
 }
 
-export async function getRepositoryDetail(owner: string, repo: string) {
+export async function getRepositoryDetail(owner: string, repo: string, includeRemoved = false) {
   return db.repository.findUnique({
-    where: { fullName: `${owner}/${repo}` },
+    where: { fullName: `${owner}/${repo}`, ...(includeRemoved ? {} : { isIndexed: true }) },
     include: {
       helpCategories: true,
       evidence: { orderBy: [{ confidence: "asc" }, { discoveredAt: "desc" }] },

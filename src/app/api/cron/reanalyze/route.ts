@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
   const candidates = await db.repository.findMany({
     where: {
       isIndexed: true,
+      isLocked: false,
       isFixture: false,
       OR: [{ nextAnalysisAt: null }, { nextAnalysisAt: { lte: new Date() } }],
     },

@@ -55,3 +55,56 @@ body {
   background: var(--status-actively-asking);
   color: white;
 }
+
+@property --featured-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.featured-repository {
+  --featured-angle: 0deg;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(var(--background), var(--background)) padding-box,
+    conic-gradient(from var(--featured-angle), #a78bfa44 0%, #a78bfa44 55%, #a78bfa 70%, #67e8f9 80%, #ffffff 85%, #c4b5fd 90%, #a78bfa44 100%) border-box;
+  box-shadow: 0 12px 60px -24px #8b5cf64d, 0 0 24px -12px #67e8f966;
+  animation: featured-orbit 8s linear infinite;
+  transition: transform 250ms ease, box-shadow 250ms ease;
+}
+
+.featured-repository::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 100% 0%, #a78bfa20, transparent 65%), radial-gradient(ellipse at 0% 100%, #67e8f90d, transparent 60%);
+}
+
+.featured-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image: linear-gradient(#a78bfa 1px, transparent 1px), linear-gradient(90deg, #a78bfa 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at top right, black, transparent 65%);
+}
+
+.featured-repository:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 70px -24px #8b5cf666, 0 0 30px -10px #67e8f944;
+}
+
+@keyframes featured-orbit {
+  to { --featured-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featured-repository { animation: none; transition: none; }
+  .featured-repository:hover { transform: none; }
+}

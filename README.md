@@ -166,7 +166,8 @@ For production, create a Clerk production instance, configure the maintain.help 
 
 | Route | Access and purpose |
 | :--- | :--- |
-| `/admin/calibration` | Calibration dashboard for signed-in users listed in `ADMIN_GITHUB_LOGINS`. |
+| `/admin` | Repository moderation for users in `ADMIN_GITHUB_LOGINS`: search listings, view reports, lock/unlock, delete/restore. |
+| `/admin/calibration` | Redirects to `/admin`. |
 | `/api/admin/ingest` | Admin-only ingestion of a bounded repository list or GitHub search query. |
 | `/api/cron/analyze-repositories` | Scheduled analysis; requires `Authorization: Bearer $CRON_SECRET`. |
 

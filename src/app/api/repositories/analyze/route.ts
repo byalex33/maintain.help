@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { parseGitHubRepoUrl } from "@/lib/github/parseUrl";
 import { repositoryExists } from "@/lib/queries/repositories";
-import { ingestRepository } from "@/lib/ingest";
+import { ingestRepository, RepositoryModerationError } from "@/lib/ingest";
 import { GitHubNotFoundError, GitHubRateLimitError } from "@/lib/github/client";
 import { auth } from "@/lib/auth";
 
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ owner: repository.owner, repo: repository.name, existed: alreadyIndexed });
   } catch (err) {
+    if (err instanceof RepositoryModerationError) return NextResponse.json({ error: err.message }, { status: 403 });
     if (err instanceof GitHubNotFoundError) {
       return NextResponse.json({ error: `${parsed.owner}/${parsed.repo} was not found on GitHub.` }, { status: 404 });
     }

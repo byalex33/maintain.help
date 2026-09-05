@@ -54,6 +54,17 @@ describe("Clerk-backed user actions", () => {
     } });
   });
 
+  it("accepts reports from signed-in users and requires a reason", async () => {
+    const form = new FormData();
+    form.set("type", "REPORT");
+    await submitRepositoryFeedback("owner", "repo", form);
+    expect(mocks.feedback).not.toHaveBeenCalled();
+    form.set("notes", "This listing contains spam.");
+    await expect(submitRepositoryFeedback("owner", "repo", form)).rejects.toThrow("redirect");
+    expect(mocks.feedback).toHaveBeenCalledWith({ data: { repositoryId: "repo_id", userId: "stable_local_id", type: "REPORT", notes: "This listing contains spam.", trusted: false } });
+    expect(mocks.repository).toHaveBeenCalledWith({ where: { fullName: "owner/repo", isIndexed: true }, select: { id: true } });
+  });
+
   it("does not grant maintainer actions merely from a reused GitHub username", async () => {
     await feedback("NEED_SUCCESSOR");
     expect(mocks.maintainer).toHaveBeenCalledWith({

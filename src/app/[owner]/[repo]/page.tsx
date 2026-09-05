@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Star, GitFork, ExternalLink, Circle, Bookmark } from "lucide-react";
+import { Star, GitFork, ExternalLink, Circle, Bookmark, ShieldCheck, Flag } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -12,7 +12,9 @@ import { ContributorsList } from "@/components/repo/contributors-list";
 import { OpenOpportunities } from "@/components/repo/open-opportunities";
 import { ClaimBanner } from "@/components/repo/claim-banner";
 import { getRepositoryDetail } from "@/lib/queries/repositories";
-import { auth } from "@/lib/auth";
+import { auth, isAdminLogin } from "@/lib/auth";
+import { ModerationControls } from "@/components/repo/moderation-controls";
+import { resolveReport } from "@/app/admin/actions";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { setRepositorySaved } from "@/app/saved/actions";
@@ -24,9 +26,9 @@ interface RepoPageParams {
   repo: string;
 }
 
-async function loadRepo(params: Promise<RepoPageParams>) {
+async function loadRepo(params: Promise<RepoPageParams>, includeRemoved: boolean) {
   const { owner, repo } = await params;
-  const data = await getRepositoryDetail(owner, repo);
+  const data = await getRepositoryDetail(owner, repo, includeRemoved);
   if (!data) notFound();
   return data;
 }
@@ -38,7 +40,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { owner, repo } = await params;
   const data = await getRepositoryDetail(owner, repo);
-  if (!data) return {};
+  if (!data) return { robots: { index: false, follow: false } };
 
   const title = `${data.fullName} - Open Source Help & Maintainer Status`;
   const description =
@@ -52,9 +54,16 @@ export async function generateMetadata({
   };
 }
 
-export default async function RepoPage({ params }: { params: Promise<RepoPageParams> }) {
-  const repository = await loadRepo(params);
+export default async function RepoPage({ params, searchParams }: { params: Promise<RepoPageParams>; searchParams: Promise<{ report?: string }> }) {
   const session = await auth();
+  const isAdmin = isAdminLogin(session?.user.githubLogin);
+  const repository = await loadRepo(params, isAdmin);
+  const reportSent = (await searchParams).report === "sent";
+  const reports = isAdmin ? await db.repositoryFeedback.findMany({
+    where: { repositoryId: repository.id, resolvedAt: null },
+    include: { user: { select: { githubLogin: true, name: true } } },
+    orderBy: { createdAt: "desc" },
+  }) : [];
 
   const activeRequest = repository.maintainerRequests[0] ?? null;
   const saved = session?.user ? Boolean(await db.savedRepository.findUnique({
@@ -113,6 +122,8 @@ export default async function RepoPage({ params }: { params: Promise<RepoPagePar
           {repository.license ? <span>{repository.license}</span> : null}
           {repository.isFixture ? <Badge variant="outline">Fixture data</Badge> : null}
           {repository.isArchived ? <Badge variant="secondary">Archived</Badge> : null}
+          {repository.isLocked ? <Badge variant="warning">Locked by a moderator</Badge> : null}
+          {!repository.isIndexed ? <Badge variant="danger">Deleted listing · admin only</Badge> : null}
           {repository.availability !== "AVAILABLE" ? <Badge variant="outline">Currently unavailable</Badge> : null}
         </div>
       </div>
@@ -176,18 +187,34 @@ export default async function RepoPage({ params }: { params: Promise<RepoPagePar
           <OpenOpportunities issues={repository.issues} />
         </div>
 
-        <div className="space-y-4">
-          {session?.user ? <form action={setRepositorySaved.bind(null, repository.id, !saved)}>
+        <div className={isAdmin ? "order-first space-y-4 lg:order-none" : "space-y-4"}>
+          {isAdmin ? <Card className="border-blue-200 dark:border-blue-900">
+            <CardHeader><CardTitle><span className="flex items-center gap-2"><ShieldCheck aria-hidden="true" className="size-4" />Repository management</span></CardTitle></CardHeader>
+            <CardContent className="space-y-5">
+              <Link href="/admin" className="text-xs text-neutral-500 underline underline-offset-4">Back to admin</Link>
+              <ModerationControls repository={{ id: repository.id, fullName: repository.fullName, isIndexed: repository.isIndexed, isLocked: repository.isLocked, isFeatured: repository.isFeatured }} />
+              <div className="space-y-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+                <h3 className="text-sm font-semibold">Reports &amp; feedback ({reports.length})</h3>
+                {reports.length ? reports.map((report) => <div key={report.id} className="space-y-2 rounded-md bg-neutral-50 p-3 text-xs dark:bg-neutral-900">
+                  <p className="font-medium">{report.type.replaceAll("_", " ")}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm">{report.notes ?? "No additional details."}</p>
+                  <p className="text-neutral-500">{report.user.githubLogin ?? report.user.name ?? "User"} · {report.createdAt.toLocaleDateString("en-GB", { timeZone: "UTC" })}</p>
+                  <form action={resolveReport.bind(null, repository.id, report.id)}><Button type="submit" variant="outline" size="sm">Mark resolved</Button></form>
+                </div>) : <p className="text-xs text-neutral-500">No open reports or feedback.</p>}
+              </div>
+            </CardContent>
+          </Card> : null}
+          {session?.user && repository.isIndexed ? <form action={setRepositorySaved.bind(null, repository.id, !saved)}>
             <Button type="submit" variant="outline" className="w-full"><Bookmark className={saved ? "fill-current" : ""} />{saved ? "Unsave repository" : "Save repository"}</Button>
           </form> : null}
-          <ClaimBanner
+          {repository.isIndexed && !repository.isLocked ? <ClaimBanner
             owner={repository.owner}
             repo={repository.name}
             activeRequest={activeRequest}
             isSignedIn={Boolean(session?.user)}
-          />
+          /> : null}
           <ContributorsList maintainers={repository.maintainers} />
-          <Card>
+          {repository.isIndexed ? <Card>
             <CardHeader><CardTitle>Is this status inaccurate?</CardTitle></CardHeader>
             <CardContent>
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
@@ -204,7 +231,21 @@ export default async function RepoPage({ params }: { params: Promise<RepoPagePar
                 <Button type="submit" size="sm">Send feedback</Button>
               </form> : <Button asChild variant="outline" size="sm"><Link href="/sign-in">Sign in to send feedback</Link></Button>}
             </CardContent>
-          </Card>
+          </Card> : null}
+          {repository.isIndexed ? <Card id="report" className="scroll-mt-20">
+            <CardHeader><CardTitle><span className="flex items-center gap-2"><Flag aria-hidden="true" className="size-4" />Report repository</span></CardTitle></CardHeader>
+            <CardContent>
+              {reportSent ? <p role="status" className="mb-3 text-sm text-green-700 dark:text-green-400">Report sent. An admin can now review it.</p> : null}
+              {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
+                <input type="hidden" name="type" value="REPORT" />
+                <label className="block space-y-2 text-xs font-medium">What should we look into?
+                  <textarea name="notes" required minLength={1} maxLength={2000} rows={3} placeholder="Spam, misleading information, or another concern…" className="w-full rounded-md border border-neutral-200 bg-white p-2 text-sm dark:border-neutral-800 dark:bg-neutral-950" />
+                </label>
+                <p className="text-xs text-neutral-500">Your report and account name are visible only to admins.</p>
+                <Button type="submit" variant="outline" size="sm">Send report</Button>
+              </form> : <Button asChild variant="outline" size="sm"><Link href={`/sign-in?callbackUrl=${encodeURIComponent(`/${repository.owner}/${repository.name}#report`)}`}>Sign in to report</Link></Button>}
+            </CardContent>
+          </Card> : null}
           {repository.topics.length > 0 ? (
             <Card>
               <CardHeader>

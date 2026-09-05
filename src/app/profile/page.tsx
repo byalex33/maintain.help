@@ -23,13 +23,15 @@ export default async function ProfilePage() {
     where: { id: session.user.id },
     select: {
       createdAt: true,
-      _count: { select: { savedRepositories: true } },
+      _count: { select: { savedRepositories: { where: { repository: { isIndexed: true } } } } },
       savedRepositories: {
+        where: { repository: { isIndexed: true } },
         select: { repository: { select: repositoryCardSelect } },
         orderBy: { createdAt: "desc" },
         take: 3,
       },
       submittedRepositories: {
+        where: { isIndexed: true },
         select: repositoryCardSelect,
         orderBy: { createdAt: "desc" },
       },

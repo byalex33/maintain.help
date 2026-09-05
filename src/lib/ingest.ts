@@ -10,6 +10,8 @@ import { RepositoryAvailability } from "@/generated/prisma/enums";
 import type { RawRepositoryData } from "@/lib/github/types";
 import { repositoryCanonicalKey } from "@/lib/repositoryIdentity";
 
+export class RepositoryModerationError extends Error {}
+
 /**
  * Fetches a repository from GitHub, runs the detection/scoring engine, and
  * persists everything. Used by both the "add repository" flow and scheduled
@@ -18,13 +20,15 @@ import { repositoryCanonicalKey } from "@/lib/repositoryIdentity";
  * underlying evidence and metrics.
  */
 export async function ingestRepository(owner: string, repo: string, options: { submittedById?: string } = {}) {
+  const listing = await db.repository.findFirst({ where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } } });
+  if (listing && (!listing.isIndexed || listing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
   let raw: RawRepositoryData;
   try {
     raw = await fetchRepositoryData(owner, repo);
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 1000) : "Unknown GitHub error";
     await db.repository.updateMany({
-      where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } },
+      where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" }, isIndexed: true, isLocked: false },
       data: {
         analysisError: message,
         ...(error instanceof GitHubNotFoundError ? { availability: RepositoryAvailability.UNAVAILABLE } : {}),
@@ -37,6 +41,8 @@ export async function ingestRepository(owner: string, repo: string, options: { s
     where: { OR: [{ githubId: BigInt(raw.githubId) }, { fullName: raw.fullName }] },
     include: { maintainerRequests: { where: { isActive: true }, take: 1 } },
   });
+  // The numeric ID also protects renamed repositories from being re-imported.
+  if (existing && (!existing.isIndexed || existing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
 
   const activeRequest = existing?.maintainerRequests[0] ?? null;
   const analysis = analyzeRepository(raw, {
@@ -76,7 +82,6 @@ export async function ingestRepository(owner: string, repo: string, options: { s
       beginnerFriendlyScore: analysis.beginnerFriendlyScore,
       isBeginnerFriendly: analysis.isBeginnerFriendly,
       isFixture: false,
-      isIndexed: true,
       lastAnalyzedAt: now,
       nextAnalysisAt: nextAnalysisDate({
         isArchived: raw.isArchived,
@@ -90,7 +95,8 @@ export async function ingestRepository(owner: string, repo: string, options: { s
 
   const repository = await db.$transaction(async (tx) => {
     const saved = await tx.repository.upsert({
-      where: repositoryCanonicalKey(raw.githubId),
+      // Recheck in the write itself so an in-flight import cannot undo moderation.
+      where: { ...repositoryCanonicalKey(raw.githubId), isIndexed: true, isLocked: false },
       create: { ...values, submittedById: options.submittedById ?? null },
       update: { ...values, ...(options.submittedById && !existing?.submittedById ? { submittedById: options.submittedById } : {}) },
     });

@@ -149,6 +149,7 @@ enum ClassificationVerdict {
 }
 
 enum RepositoryFeedbackType {
+  REPORT
   NEED_CONTRIBUTORS
   NEED_COMAINTAINERS
   NEED_SUCCESSOR
@@ -205,6 +206,8 @@ model Repository {
   // Ingestion bookkeeping
   isFixture       Boolean                @default(false)
   isIndexed       Boolean                @default(true)
+  isLocked        Boolean                @default(false)
+  isFeatured      Boolean                @default(false)
   lastAnalyzedAt  DateTime?
   nextAnalysisAt  DateTime?
   analysisVersion Int                    @default(1)
@@ -426,6 +429,7 @@ model RepositoryFeedback {
   notes        String?                @db.Text
   trusted      Boolean                @default(false)
   createdAt    DateTime               @default(now())
+  resolvedAt   DateTime?
 
   @@index([repositoryId, createdAt])
   @@index([userId, createdAt])

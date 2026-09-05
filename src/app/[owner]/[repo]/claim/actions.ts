@@ -42,8 +42,8 @@ export async function submitMaintainerRequest(
   }
 
   const repository = await db.repository.findUnique({ where: { fullName: `${owner}/${repo}` } });
-  if (!repository) {
-    return { error: "This repository could not be found." };
+  if (!repository || !repository.isIndexed || repository.isLocked) {
+    return { error: "This repository is unavailable or locked by a moderator." };
   }
 
   const status = formData.get("status");
@@ -57,35 +57,6 @@ export async function submitMaintainerRequest(
     .filter(Boolean)
     .slice(0, 15);
 
-  await db.maintainerRequest.updateMany({
-    where: { repositoryId: repository.id, isActive: true },
-    data: { isActive: false },
-  });
-
-  await db.maintainerRequest.create({
-    data: {
-      repositoryId: repository.id,
-      userId: session.user.id,
-      status: status as WantedHelpStatus,
-      message,
-      skillsWanted,
-      isActive: true,
-    },
-  });
-
-  await db.repositoryMaintainer.upsert({
-    where: { repositoryId_githubLogin: { repositoryId: repository.id, githubLogin: username } },
-    create: {
-      repositoryId: repository.id,
-      githubLogin: username,
-      userId: session.user.id,
-      role: "maintainer",
-      isActive: true,
-      verifiedAt: new Date(),
-    },
-    update: { userId: session.user.id, verifiedAt: new Date(), isActive: true },
-  });
-
   const overridden = applyMaintainerOverride(
     {
       status: repository.status,
@@ -96,25 +67,61 @@ export async function submitMaintainerRequest(
     { status: status as WantedHelpStatus, message }
   );
 
-  await db.repository.update({
-    where: { id: repository.id },
-    data: {
-      status: overridden.status,
-      statusConfidence: overridden.confidence,
-      statusVerified: overridden.verified,
-      statusReason: overridden.reason,
-    },
-  });
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.repository.update({
+        where: { id: repository.id, isIndexed: true, isLocked: false },
+        data: {
+          status: overridden.status,
+          statusConfidence: overridden.confidence,
+          statusVerified: overridden.verified,
+          statusReason: overridden.reason,
+        },
+      });
 
-  await db.repositoryStatus.create({
-    data: {
-      repositoryId: repository.id,
-      status: overridden.status,
-      confidence: overridden.confidence,
-      verified: overridden.verified,
-      reason: overridden.reason,
-    },
-  });
+      await tx.repositoryStatus.create({
+        data: {
+          repositoryId: repository.id,
+          status: overridden.status,
+          confidence: overridden.confidence,
+          verified: overridden.verified,
+          reason: overridden.reason,
+        },
+      });
+
+      await tx.maintainerRequest.updateMany({
+        where: { repositoryId: repository.id, isActive: true },
+        data: { isActive: false },
+      });
+
+      await tx.maintainerRequest.create({
+        data: {
+          repositoryId: repository.id,
+          userId: session.user.id,
+          status: status as WantedHelpStatus,
+          message,
+          skillsWanted,
+          isActive: true,
+        },
+      });
+
+      await tx.repositoryMaintainer.upsert({
+        where: { repositoryId_githubLogin: { repositoryId: repository.id, githubLogin: username } },
+        create: {
+          repositoryId: repository.id,
+          githubLogin: username,
+          userId: session.user.id,
+          role: "maintainer",
+          isActive: true,
+          verifiedAt: new Date(),
+        },
+        update: { userId: session.user.id, verifiedAt: new Date(), isActive: true },
+      });
+
+    });
+  } catch {
+    return { error: "The claim could not be saved. The repository may have been locked or removed. Please try again." };
+  }
 
   revalidatePath(`/${owner}/${repo}`);
   redirect(`/${owner}/${repo}`);
