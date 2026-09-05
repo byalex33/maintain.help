@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Octokit } from "@octokit/rest";
 
 import { parseGitHubRepoUrl } from "@/lib/github/parseUrl";
 import { repositoryExists } from "@/lib/queries/repositories";
 import { ingestRepository, RepositoryModerationError } from "@/lib/ingest";
-import { GitHubNotFoundError, GitHubRateLimitError } from "@/lib/github/client";
-import { auth } from "@/lib/auth";
+import { GitHubNotFoundError, GitHubRateLimitError, withGitHubErrors } from "@/lib/github/client";
+import { auth, getGitHubAccessToken } from "@/lib/auth";
+import { isOwnPublicRepository } from "@/lib/github/ownedRepositories";
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Sign in with GitHub to add a repository." }, { status: 401 });
   const body = await req.json().catch(() => null);
   const url = typeof body?.url === "string" ? body.url : "";
   const parsed = parseGitHubRepoUrl(url);
@@ -18,17 +22,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const alreadyIndexed = await repositoryExists(parsed.owner, parsed.repo);
-
   try {
-    const session = await auth();
+    const token = await getGitHubAccessToken(session.user.id);
+    if (!token) return NextResponse.json({ error: "Sign in again to reconnect GitHub." }, { status: 403 });
+    const github = new Octokit({ auth: token });
+    const { data } = await withGitHubErrors(() => github.repos.get({ owner: parsed.owner, repo: parsed.repo }));
+    if (!isOwnPublicRepository(data, session.user.githubId)) {
+      return NextResponse.json({ error: "Choose a public repository owned by your GitHub account." }, { status: 403 });
+    }
+    const alreadyIndexed = await repositoryExists(parsed.owner, parsed.repo);
     const repository = await ingestRepository(parsed.owner, parsed.repo, {
-      submittedById: session?.user?.id,
+      submittedById: session.user.id,
     });
     return NextResponse.json({ owner: repository.owner, repo: repository.name, existed: alreadyIndexed });
   } catch (err) {
     if (err instanceof RepositoryModerationError) return NextResponse.json({ error: err.message }, { status: 403 });
-    if (err instanceof GitHubNotFoundError) {
+    if (err instanceof GitHubNotFoundError || (err && typeof err === "object" && "status" in err && err.status === 404)) {
       return NextResponse.json({ error: `${parsed.owner}/${parsed.repo} was not found on GitHub.` }, { status: 404 });
     }
     if (err instanceof GitHubRateLimitError) {

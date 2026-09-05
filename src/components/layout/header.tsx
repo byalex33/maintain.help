@@ -30,12 +30,13 @@ export async function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/add">
-              <Plus className="size-4" />
-              Add repository
-            </Link>
-          </Button>
+          {session?.user ? (
+            <Button asChild variant="outline" size="icon">
+              <Link href="/add" aria-label="Add a repository" title="Add a repository">
+                <Plus aria-hidden="true" className="size-4" />
+              </Link>
+            </Button>
+          ) : null}
 
           {session?.user ? (
             <AccountMenu username={session.user.githubLogin} image={session.user.image} isAdmin={isAdminLogin(session.user.githubLogin)} />

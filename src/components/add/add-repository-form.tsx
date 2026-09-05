@@ -2,19 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export function AddRepositoryForm() {
+export function AddRepositoryForm({ repositories }: {
+  repositories: { id: number; fullName: string; description: string | null; url: string }[];
+}) {
   const router = useRouter();
-  const [url, setUrl] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const matches = repositories.filter((repo) => repo.fullName.toLowerCase().includes(search.trim().toLowerCase()));
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function addRepository(repository: typeof repositories[number]) {
+    setSelectedId(repository.id);
     setStatus("loading");
     setError(null);
 
@@ -22,7 +26,7 @@ export function AddRepositoryForm() {
       const res = await fetch("/api/repositories/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: repository.url }),
       });
       const data = await res.json();
 
@@ -40,21 +44,33 @@ export function AddRepositoryForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://github.com/owner/repo"
-          className="h-11"
-          required
-        />
-        <Button type="submit" size="lg" className="h-11" disabled={status === "loading"}>
-          {status === "loading" ? <Loader2 className="size-4 animate-spin" /> : null}
-          Analyze
-        </Button>
-      </div>
-      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-    </form>
+    <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Find a repository…"
+        aria-label="Find one of your repositories"
+        className="h-11"
+      />
+      {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+      {repositories.length === 0 ? <p className="text-sm text-neutral-500">You don&rsquo;t have any public repositories yet.</p> : null}
+      {repositories.length > 0 && matches.length === 0 ? (
+        <p className="text-sm text-neutral-500">No repositories match your search.</p>
+      ) : null}
+      <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+        {matches.map((repo) => (
+          <li key={repo.id} className="flex items-center gap-4 py-4">
+            <div className="min-w-0 flex-1">
+              <p className="break-words font-medium">{repo.fullName}</p>
+              {repo.description ? <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{repo.description}</p> : null}
+            </div>
+            <Button onClick={() => addRepository(repo)} disabled={status === "loading"} aria-label={`Add ${repo.fullName}`}>
+              {status === "loading" && selectedId === repo.id ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
+              {status === "loading" && selectedId === repo.id ? "Adding…" : "Add"}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
