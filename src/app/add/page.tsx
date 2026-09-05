@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AddRepositoryForm } from "@/components/add/add-repository-form";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
-import { getOwnPublicRepositories } from "@/lib/github/ownedRepositories";
+import { getAddablePublicRepositories } from "@/lib/github/ownedRepositories";
 
 export const metadata: Metadata = {
   title: "Add a repository",
@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 export default async function AddRepositoryPage() {
   const session = await auth();
   if (!session) redirect("/sign-in?callbackUrl=%2Fadd");
-  let repositories: Awaited<ReturnType<typeof getOwnPublicRepositories>> = [];
+  let repositories: Awaited<ReturnType<typeof getAddablePublicRepositories>> = [];
   let error: string | null = null;
   try {
     const token = await getGitHubAccessToken(session.user.id);
-    if (token) repositories = await getOwnPublicRepositories(token, session.user.githubId);
+    if (token) repositories = await getAddablePublicRepositories(token, session.user.githubId);
     else error = "GitHub access is unavailable. Sign out, then sign in with GitHub again to reconnect.";
   } catch {
     error = "We couldn't load your GitHub repositories. Please try again shortly.";
@@ -27,7 +27,7 @@ export default async function AddRepositoryPage() {
     <div className="mx-auto max-w-xl px-4 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Add a repository</h1>
       <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-        Choose one of your public GitHub repositories to add to maintain.help.
+        Choose a public repository you own or have admin or maintainer access to, including organization repositories.
       </p>
       <div className="mt-6">
         {error ? (

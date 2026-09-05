@@ -53,7 +53,7 @@ export function AddRepositoryForm({ repositories }: {
         className="h-11"
       />
       {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-      {repositories.length === 0 ? <p className="text-sm text-neutral-500">You don&rsquo;t have any public repositories yet.</p> : null}
+      {repositories.length === 0 ? <p className="text-sm text-neutral-500">No public repositories with owner, admin, or maintainer access were found.</p> : null}
       {repositories.length > 0 && matches.length === 0 ? (
         <p className="text-sm text-neutral-500">No repositories match your search.</p>
       ) : null}

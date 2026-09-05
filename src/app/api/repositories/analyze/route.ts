@@ -6,7 +6,7 @@ import { repositoryExists } from "@/lib/queries/repositories";
 import { ingestRepository, RepositoryModerationError } from "@/lib/ingest";
 import { GitHubNotFoundError, GitHubRateLimitError, withGitHubErrors } from "@/lib/github/client";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
-import { isOwnPublicRepository } from "@/lib/github/ownedRepositories";
+import { canAddPublicRepository } from "@/lib/github/ownedRepositories";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "Sign in again to reconnect GitHub." }, { status: 403 });
     const github = new Octokit({ auth: token });
     const { data } = await withGitHubErrors(() => github.repos.get({ owner: parsed.owner, repo: parsed.repo }));
-    if (!isOwnPublicRepository(data, session.user.githubId)) {
-      return NextResponse.json({ error: "Choose a public repository owned by your GitHub account." }, { status: 403 });
+    if (!canAddPublicRepository(data, session.user.githubId)) {
+      return NextResponse.json({ error: "Choose a public repository you own or have admin or maintainer access to." }, { status: 403 });
     }
     const alreadyIndexed = await repositoryExists(parsed.owner, parsed.repo);
     const repository = await ingestRepository(parsed.owner, parsed.repo, {
