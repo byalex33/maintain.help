@@ -63,8 +63,20 @@ describe("Clerk GitHub identity bridge", () => {
 
   it("does not rebind a GitHub identity linked to another Clerk user", async () => {
     mocks.upsert.mockResolvedValue({ id: "local_existing", clerkId: "someone_else" });
-    await expect(auth()).rejects.toThrow("already linked");
+    expect(await auth()).toBeNull();
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch tokens for a conflicting GitHub identity", async () => {
+    mocks.upsert.mockResolvedValue({ id: "local_existing", clerkId: "someone_else" });
+    expect(await getGitHubAccessToken("local_existing")).toBeNull();
+    expect(mocks.getTokens).not.toHaveBeenCalled();
+  });
+
+  it("does not hide unexpected database failures as rejected sessions", async () => {
+    const error = new Error("database unavailable");
+    mocks.transaction.mockRejectedValue(error);
+    await expect(auth()).rejects.toBe(error);
   });
 
   it("refreshes a renamed GitHub account without matching email or username", async () => {
