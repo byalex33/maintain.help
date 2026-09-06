@@ -34,10 +34,12 @@ export async function submitMaintainerRequest(
     return { error: "Your GitHub session has expired. Please sign in again." };
   }
 
-  const permission = await checkClaimPermission(accessToken, owner, repo, username);
+  const permission = await checkClaimPermission(accessToken, owner, repo, session.user.githubId);
   if (!permission.eligible) {
     return {
-      error: `GitHub reports your permission on ${owner}/${repo} as "${permission.permission ?? "none"}". Claiming requires admin or maintain access.`,
+      error: permission.permission === null
+        ? "We couldn't verify your GitHub access. Please try again, or sign in again to reconnect GitHub."
+        : `GitHub reports your permission on ${owner}/${repo} as "${permission.permission}". Claiming requires owner, admin or maintain access.`,
     };
   }
 
