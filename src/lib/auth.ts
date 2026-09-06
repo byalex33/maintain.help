@@ -3,6 +3,8 @@ import { cache } from "react";
 import { auth as clerkAuth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
+class AccountLinkConflictError extends Error {}
+
 const githubIdentity = cache(async () => {
   const { userId } = await clerkAuth();
   if (!userId) return null;
@@ -38,10 +40,15 @@ export const auth = cache(async () => {
       update: { githubLogin, name, image },
     });
     if (existing.clerkId && existing.clerkId !== clerkId) {
-      throw new Error("This GitHub account is already linked to another Clerk user.");
+      throw new AccountLinkConflictError("This GitHub account is already linked to another Clerk user.");
     }
     return existing.clerkId ? existing : tx.user.update({ where: { id: existing.id }, data: { clerkId } });
+  }).catch((error: unknown) => {
+    // Catch outside the transaction so conflicting profile changes are rolled back.
+    if (error instanceof AccountLinkConflictError) return null;
+    throw error;
   });
+  if (!user) return null;
   return { user: { id: user.id, githubId, githubLogin, name: user.name, image: user.image } };
 });
 
