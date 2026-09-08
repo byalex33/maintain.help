@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { HelpStatus, HelpCategory } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
+const PUBLIC_REPOSITORY = { isIndexed: true, availability: { not: "PRIVATE" as const } };
+const ACCEPTING_HELP = { maintainerRequests: { none: { isActive: true, status: "NOT_LOOKING" as const } } };
+
 const CONFIDENCE_ORDER: Record<string, number> = { VERIFIED: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
 export const repositoryCardSelect = {
@@ -41,7 +44,7 @@ export function topSignals(evidence: { title: string; confidence: string }[], co
 
 async function findRepos(where: Prisma.RepositoryWhereInput, take: number, orderBy: Prisma.RepositoryOrderByWithRelationInput[] = []) {
   return db.repository.findMany({
-    where: { isIndexed: true, ...where },
+    where: { ...PUBLIC_REPOSITORY, ...ACCEPTING_HELP, ...where },
     select: repositoryCardSelect,
     orderBy: orderBy.length ? orderBy : [{ stars: "desc" }],
     take,
@@ -68,7 +71,7 @@ export async function getHomepageSections(): Promise<HomepageSections> {
     needsDocumentationHelp,
     trending,
   ] = await Promise.all([
-    db.repository.findFirst({ where: { isIndexed: true, isFeatured: true }, select: repositoryCardSelect }),
+    db.repository.findFirst({ where: { ...PUBLIC_REPOSITORY, ...ACCEPTING_HELP, isFeatured: true }, select: repositoryCardSelect }),
     findRepos({ status: HelpStatus.SEEKING_MAINTAINERS }, 6),
     findRepos({ status: HelpStatus.ACTIVELY_ASKING }, 6),
     findRepos({ isBeginnerFriendly: true }, 6),
@@ -105,7 +108,8 @@ export interface ExploreParams {
 }
 
 function buildExploreWhere(filters: ExploreFilters): Prisma.RepositoryWhereInput {
-  const where: Prisma.RepositoryWhereInput = { isIndexed: true };
+  const where: Prisma.RepositoryWhereInput = { ...PUBLIC_REPOSITORY };
+  if (filters.helpCategory || filters.beginnerFriendly || filters.seekingMaintainers || filters.activelyAsking) Object.assign(where, ACCEPTING_HELP);
   if (filters.language) where.primaryLanguage = { equals: filters.language, mode: "insensitive" };
   if (filters.status) where.status = filters.status;
   if (filters.minStars) where.stars = { gte: filters.minStars };
@@ -157,7 +161,7 @@ export async function exploreRepositories({ filters, sort, page, pageSize = 24 }
     }),
     db.repository.count({ where }),
     db.repository.findMany({
-      where: { isIndexed: true, primaryLanguage: { not: null } },
+      where: { ...PUBLIC_REPOSITORY, primaryLanguage: { not: null } },
       select: { primaryLanguage: true },
       distinct: ["primaryLanguage"],
     }),
@@ -173,28 +177,9 @@ export async function exploreRepositories({ filters, sort, page, pageSize = 24 }
   };
 }
 
-export async function searchRepositories(query: string, take = 8) {
-  if (!query.trim()) return [];
-  return db.repository.findMany({
-    where: {
-      isIndexed: true,
-      OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { owner: { contains: query, mode: "insensitive" } },
-        { fullName: { contains: query, mode: "insensitive" } },
-        { primaryLanguage: { contains: query, mode: "insensitive" } },
-        { topics: { has: query.toLowerCase() } },
-      ],
-    },
-    select: { fullName: true, owner: true, name: true, description: true, stars: true, primaryLanguage: true },
-    orderBy: { stars: "desc" },
-    take,
-  });
-}
-
 export async function getRepositoryDetail(owner: string, repo: string, includeRemoved = false) {
   return db.repository.findUnique({
-    where: { fullName: `${owner}/${repo}`, ...(includeRemoved ? {} : { isIndexed: true }) },
+    where: { fullName: `${owner}/${repo}`, ...(includeRemoved ? {} : PUBLIC_REPOSITORY) },
     include: {
       helpCategories: true,
       evidence: { orderBy: [{ confidence: "asc" }, { discoveredAt: "desc" }] },
@@ -221,7 +206,7 @@ export interface DeveloperMatchParams {
 }
 
 export async function matchProjectsForDeveloper({ languages, helpCategories, experience }: DeveloperMatchParams) {
-  const where: Prisma.RepositoryWhereInput = { isIndexed: true };
+  const where: Prisma.RepositoryWhereInput = { ...PUBLIC_REPOSITORY, ...ACCEPTING_HELP };
   if (languages.length > 0) where.primaryLanguage = { in: languages, mode: "insensitive" };
   if (helpCategories.length > 0) where.helpCategories = { some: { category: { in: helpCategories } } };
   if (experience === "beginner") where.isBeginnerFriendly = true;

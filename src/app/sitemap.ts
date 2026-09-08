@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const repositories = await db.repository.findMany({
-    where: { isIndexed: true },
+    where: { isIndexed: true, availability: { not: "PRIVATE" } },
     select: { owner: true, name: true, updatedAt: true },
     orderBy: { stars: "desc" },
     take: 5000,

@@ -9,7 +9,7 @@ import { setSavedRepository } from "@/lib/savedRepositories";
 export async function setRepositorySaved(repositoryId: string, saved: boolean) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
-  if (saved && !await db.repository.findUnique({ where: { id: repositoryId, isIndexed: true }, select: { id: true } })) return;
+  if (saved && !await db.repository.findUnique({ where: { id: repositoryId, isIndexed: true, availability: { not: "PRIVATE" } }, select: { id: true } })) return;
   await setSavedRepository(db.savedRepository, session.user.id, repositoryId, saved);
   revalidatePath("/saved");
 }

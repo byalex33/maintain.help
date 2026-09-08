@@ -22,6 +22,13 @@ export class GitHubNotFoundError extends Error {
   }
 }
 
+export class GitHubPrivateRepositoryError extends Error {
+  constructor(owner: string, repo: string) {
+    super(`Repository ${owner}/${repo} is private and cannot be indexed.`);
+    this.name = "GitHubPrivateRepositoryError";
+  }
+}
+
 export class GitHubRateLimitError extends Error {
   constructor(public resetAt: Date | null) {
     super(`GitHub API rate limit exceeded${resetAt ? `, resets at ${resetAt.toISOString()}` : ""}`);

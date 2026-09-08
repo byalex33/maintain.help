@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -46,7 +47,7 @@ export default async function AddRepositoryPage() {
             <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <Link href="/sign-in?callbackUrl=%2Fadd" className="text-sm underline">Sign in with GitHub</Link>
             <form action="/add" method="get">
-              <button type="submit" className="text-sm underline">Try again</button>
+              <Button type="submit" variant="link" className="h-auto p-0">Try again</Button>
             </form>
           </div>
         ) : <AddRepositoryForm repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} />}

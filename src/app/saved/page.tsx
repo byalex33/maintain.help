@@ -8,7 +8,7 @@ export default async function SavedRepositoriesPage() {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
   const saved = await db.savedRepository.findMany({
-    where: { userId: session.user.id, repository: { isIndexed: true } },
+    where: { userId: session.user.id, repository: { isIndexed: true, availability: { not: "PRIVATE" } } },
     select: { repository: { select: repositoryCardSelect } },
     orderBy: { createdAt: "desc" },
   });

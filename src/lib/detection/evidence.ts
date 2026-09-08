@@ -23,8 +23,8 @@ export interface EvidenceInput {
 /** Scans README, CONTRIBUTING, and open issue titles for explicit phrases, tagging each with its source. */
 export function findSourcedPhraseMatches(raw: RawRepositoryData): SourcedPhraseMatch[] {
   const results: SourcedPhraseMatch[] = [];
-  const readmeUrl = `${raw.url}/blob/${raw.defaultBranch}/README.md`;
-  const contributingUrl = `${raw.url}/blob/${raw.defaultBranch}/CONTRIBUTING.md`;
+  const readmeUrl = raw.readmeUrl ?? null;
+  const contributingUrl = raw.contributingUrl ?? null;
 
   results.push(
     ...tagMatches(raw.readmeText, EvidenceSourceType.README, readmeUrl)
@@ -53,7 +53,7 @@ export function findSourcedPhraseMatches(raw: RawRepositoryData): SourcedPhraseM
 function tagMatches(
   text: string | null,
   sourceType: EvidenceSourceType,
-  sourceUrl: string,
+  sourceUrl: string | null,
   sourceTitle?: string
 ): SourcedPhraseMatch[] {
   return findPhraseMatches(text).map((m) => ({ ...m, sourceType, sourceUrl, sourceTitle }));
@@ -75,6 +75,26 @@ export interface BuildEvidenceParams {
 export function buildEvidence(params: BuildEvidenceParams): EvidenceInput[] {
   const { raw, sourcedPhraseMatches, metrics, capacityResult, beginnerResult } = params;
   const evidence: EvidenceInput[] = [];
+  if (raw.issuesTruncated) {
+    evidence.push({
+      type: EvidenceType.METRIC,
+      title: "Issue details are sampled",
+      description: "Open and recent issue/PR totals are fetched separately. Only up to 300 oldest open items are inspected; backlog medians are omitted, and other labels or statements may be missing.",
+      sourceUrl: `${raw.url}/issues`,
+      sourceType: EvidenceSourceType.CALCULATED_METRIC,
+      confidence: ConfidenceLevel.LOW,
+    });
+  }
+  if (raw.closedIssuesTruncated) {
+    evidence.push({
+      type: EvidenceType.METRIC,
+      title: "Closed issue details are sampled",
+      description: "Only up to 300 recently updated closed issues/PRs are inspected. The recent PR closure-time median is omitted because the sample may be incomplete.",
+      sourceUrl: `${raw.url}/pulls?q=is%3Apr+is%3Aclosed`,
+      sourceType: EvidenceSourceType.CALCULATED_METRIC,
+      confidence: ConfidenceLevel.LOW,
+    });
+  }
 
   for (const match of sourcedPhraseMatches) {
     evidence.push({

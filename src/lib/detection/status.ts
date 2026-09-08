@@ -85,9 +85,11 @@ export function determineStatus(
 
   return {
     status: HelpStatus.HEALTHY,
-    confidence: deriveHealthyConfidence(capacityResult.score),
+    confidence: raw.issuesTruncated ? ConfidenceLevel.LOW : deriveHealthyConfidence(capacityResult.score),
     verified: false,
-    reason: "No significant signals of maintainer capacity pressure were detected.",
+    reason: raw.issuesTruncated
+      ? "No significant signals of maintainer capacity pressure were detected in the available data. Issue details are sampled, so some requests and backlog signals may be missing."
+      : "No significant signals of maintainer capacity pressure were detected.",
   };
 }
 

@@ -62,8 +62,9 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <Label className="mb-1.5 text-xs text-neutral-500">Search</Label>
+        <Label htmlFor="explore-search" className="mb-1.5 text-xs text-neutral-500">Search</Label>
         <Input
+          id="explore-search"
           defaultValue={searchParams.get("q") ?? ""}
           placeholder="name, owner, language..."
           onKeyDown={(e) => {
@@ -74,9 +75,9 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       </div>
 
       <div>
-        <Label className="mb-1.5 text-xs text-neutral-500">Sort</Label>
+        <Label htmlFor="explore-sort" className="mb-1.5 text-xs text-neutral-500">Sort</Label>
         <Select value={searchParams.get("sort") ?? "recommended"} onValueChange={(v) => set("sort", v)}>
-          <SelectTrigger>
+          <SelectTrigger id="explore-sort">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -90,12 +91,12 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       </div>
 
       <div>
-        <Label className="mb-1.5 text-xs text-neutral-500">Status</Label>
+        <Label htmlFor="explore-status" className="mb-1.5 text-xs text-neutral-500">Status</Label>
         <Select
           value={searchParams.get("status") ?? "any"}
           onValueChange={(v) => set("status", v === "any" ? null : v)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="explore-status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -110,12 +111,12 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       </div>
 
       <div>
-        <Label className="mb-1.5 text-xs text-neutral-500">Help type</Label>
+        <Label htmlFor="explore-category" className="mb-1.5 text-xs text-neutral-500">Help type</Label>
         <Select
           value={searchParams.get("category") ?? "any"}
           onValueChange={(v) => set("category", v === "any" ? null : v)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="explore-category">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -130,12 +131,12 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       </div>
 
       <div>
-        <Label className="mb-1.5 text-xs text-neutral-500">Language</Label>
+        <Label htmlFor="explore-language" className="mb-1.5 text-xs text-neutral-500">Language</Label>
         <Select
           value={searchParams.get("language") ?? "any"}
           onValueChange={(v) => set("language", v === "any" ? null : v)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="explore-language">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -150,12 +151,12 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       </div>
 
       <div>
-        <Label className="mb-1.5 text-xs text-neutral-500">Minimum stars</Label>
+        <Label htmlFor="explore-stars" className="mb-1.5 text-xs text-neutral-500">Minimum stars</Label>
         <Select
           value={searchParams.get("minStars") ?? "any"}
           onValueChange={(v) => set("minStars", v === "any" ? null : v)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="explore-stars">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

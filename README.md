@@ -173,6 +173,10 @@ For production, create a Clerk production instance, configure the maintain.help 
 
 [`vercel.json`](vercel.json) configures the analysis cron to run every six hours.
 
+Successful analyses are reused for one hour. Database leases prevent concurrent imports of the same repository, and failed analyses retry with a one-to-24-hour backoff. Apply migrations before running the updated ingestion pipeline.
+
+For optional database checks, set `TEST_DATABASE_URL` to a migrated test database and run `npm test`. Native PostgreSQL runs the concurrency checks; the embedded development database runs the single-session lease check and skips multi-session locking tests.
+
 </details>
 
 <details>

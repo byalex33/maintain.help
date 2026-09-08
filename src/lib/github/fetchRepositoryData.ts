@@ -1,6 +1,6 @@
 import "server-only";
 import { graphql } from "@octokit/graphql";
-import { getOctokit, withGitHubErrors, GitHubNotFoundError } from "./client";
+import { getOctokit, withGitHubErrors, GitHubNotFoundError, GitHubPrivateRepositoryError } from "./client";
 import { isBotAccount } from "./bots";
 import type {
   RawRepositoryData,
@@ -11,7 +11,7 @@ import type {
   RawDiscussion,
 } from "./types";
 
-const MAX_ISSUE_PAGES = 3; // 100 per page -> up to 300 most-recently-updated issues/PRs
+const MAX_ISSUE_PAGES = 3; // ponytail: sample 300 oldest open issues/PRs; aggregates cover counts, omit sampled medians.
 const ISSUES_PER_PAGE = 100;
 
 function decodeBase64(content: string): string {
@@ -35,13 +35,15 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     })
   );
   const r = repoResponse.data;
+  if (r.private) throw new GitHubPrivateRepositoryError(owner, repo);
 
   const [
     languages,
-    readmeText,
-    contributingText,
+    readme,
+    contributing,
     hasIssueTemplates,
     issues,
+    closedIssues,
     releases,
     commitActivity,
     contributorStats,
@@ -53,12 +55,14 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     fetchContributing(owner, repo),
     fetchHasIssueTemplates(owner, repo),
     fetchIssues(owner, repo),
+    fetchIssues(owner, repo, "closed"),
     fetchReleases(owner, repo),
     fetchCommitActivity(owner, repo),
     fetchContributorStats(owner, repo),
     fetchLabels(owner, repo),
     r.has_discussions ? fetchDiscussions(owner, repo) : Promise.resolve([]),
   ]);
+  const issueStatistics = await fetchIssueStatistics(r.owner.login, r.name, [...labels, ...issues.flatMap((issue) => issue.labels)]);
 
   const humanCommitActivity = contributorStats.length > 0 ? contributorActivity(contributorStats) : commitActivity;
 
@@ -77,7 +81,7 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     stars: r.stargazers_count ?? 0,
     forks: r.forks_count ?? 0,
     watchers: r.subscribers_count ?? r.watchers_count ?? 0,
-    openIssueCount: r.open_issues_count ?? 0,
+    openIssueCount: issueStatistics.openIssues,
     isArchived: r.archived ?? false,
     isFork: r.fork ?? false,
     createdAtGithub: r.created_at,
@@ -86,10 +90,16 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     latestReleaseAt: releases[0]?.publishedAt ?? null,
     license: r.license?.spdx_id ?? r.license?.name ?? null,
     defaultBranch: r.default_branch ?? "main",
-    readmeText,
-    contributingText,
+    readmeText: readme?.text ?? null,
+    contributingText: contributing?.text ?? null,
+    readmeUrl: readme?.url ?? null,
+    contributingUrl: contributing?.url ?? null,
     hasIssueTemplates,
-    issues,
+    // An item can close between the two requests; keep its latest state once.
+    issues: [...new Map([...issues, ...closedIssues].map((issue) => [issue.githubIssueId, issue])).values()],
+    issuesTruncated: issues.length < issueStatistics.openIssues + issueStatistics.openPullRequests,
+    closedIssuesTruncated: closedIssues.length === MAX_ISSUE_PAGES * ISSUES_PER_PAGE,
+    issueStatistics,
     releases,
     commitActivity: humanCommitActivity,
     contributorStats,
@@ -107,7 +117,7 @@ async function fetchLanguages(owner: string, repo: string): Promise<Record<strin
   return data as Record<string, number>;
 }
 
-async function fetchTextFile(owner: string, repo: string, kind: "README"): Promise<string | null> {
+async function fetchTextFile(owner: string, repo: string, kind: "README"): Promise<{ text: string; url: string | null } | null> {
   const octokit = getOctokit();
   try {
     const { data } =
@@ -115,7 +125,7 @@ async function fetchTextFile(owner: string, repo: string, kind: "README"): Promi
         ? await withGitHubErrors(() => octokit.repos.getReadme({ owner, repo }))
         : await Promise.reject(new Error("unsupported"));
     if ("content" in data && typeof data.content === "string") {
-      return decodeBase64(data.content);
+      return { text: decodeBase64(data.content), url: data.html_url };
     }
     return null;
   } catch (error) {
@@ -126,13 +136,13 @@ async function fetchTextFile(owner: string, repo: string, kind: "README"): Promi
 
 const CONTRIBUTING_PATHS = ["CONTRIBUTING.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md", "CONTRIBUTING"];
 
-async function fetchContributing(owner: string, repo: string): Promise<string | null> {
+async function fetchContributing(owner: string, repo: string): Promise<{ text: string; url: string | null } | null> {
   const octokit = getOctokit();
   for (const path of CONTRIBUTING_PATHS) {
     try {
       const { data } = await withGitHubErrors(() => octokit.repos.getContent({ owner, repo, path }));
       if (!Array.isArray(data) && "content" in data && typeof data.content === "string") {
-        return decodeBase64(data.content);
+        return { text: decodeBase64(data.content), url: data.html_url };
       }
     } catch (error) {
       if (!isNotFound(error)) throw error;
@@ -162,7 +172,7 @@ async function fetchHasIssueTemplates(owner: string, repo: string): Promise<bool
   }
 }
 
-async function fetchIssues(owner: string, repo: string): Promise<RawIssue[]> {
+async function fetchIssues(owner: string, repo: string, state: "open" | "closed" = "open"): Promise<RawIssue[]> {
   const octokit = getOctokit();
   const results: RawIssue[] = [];
   for (let page = 1; page <= MAX_ISSUE_PAGES; page++) {
@@ -170,9 +180,10 @@ async function fetchIssues(owner: string, repo: string): Promise<RawIssue[]> {
       octokit.issues.listForRepo({
         owner,
         repo,
-        state: "all",
-        sort: "updated",
-        direction: "desc",
+        state,
+        sort: state === "open" ? "created" : "updated",
+        direction: state === "open" ? "asc" : "desc",
+        ...(state === "closed" ? { since: new Date(Date.now() - 180 * 86_400_000).toISOString() } : {}),
         per_page: ISSUES_PER_PAGE,
         page,
       })
@@ -197,6 +208,39 @@ async function fetchIssues(owner: string, repo: string): Promise<RawIssue[]> {
     if (data.length < ISSUES_PER_PAGE) break;
   }
   return results;
+}
+
+async function fetchIssueStatistics(owner: string, repo: string, labels: string[]): Promise<NonNullable<RawRepositoryData["issueStatistics"]>> {
+  const since = new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const labelFilter = (pattern: RegExp, canonical: string) =>
+    `label:${[...new Set([canonical, ...labels.filter((label) => pattern.test(label))])].map((label) => JSON.stringify(label)).join(",")}`;
+  const queries = {
+    openIssues: "is:issue is:open",
+    openPullRequests: "is:pr is:open",
+    newIssuesLast90d: `is:issue created:>=${since}`,
+    closedIssuesLast90d: `is:issue is:closed closed:>=${since}`,
+    newPullRequestsLast90d: `is:pr created:>=${since}`,
+    closedPullRequestsLast90d: `is:pr is:closed closed:>=${since}`,
+    helpWantedIssueCount: `is:issue is:open ${labelFilter(/help.?wanted/i, "help wanted")}`,
+    goodFirstIssueCount: `is:issue is:open ${labelFilter(/good.?first.?issue|beginner.?friendly|first-timers?-only/i, "good first issue")}`,
+  };
+  const entries = Object.entries(queries).map(([key, query]) => [key, `repo:${owner}/${repo} ${query}`] as const);
+  const token = process.env.GITHUB_ANALYSIS_TOKEN;
+  if (token) {
+    const fields = entries.map(([key, query]) => `${key}: search(type: ISSUE, first: 1, query: ${JSON.stringify(query)}) { issueCount }`);
+    const result = await withGitHubErrors(() => graphql<Record<string, { issueCount: number }>>(
+      `query { ${fields.join("\n")} }`, { headers: { authorization: `token ${token}` } }
+    ));
+    return Object.fromEntries(entries.map(([key]) => [key, result[key].issueCount])) as NonNullable<RawRepositoryData["issueStatistics"]>;
+  }
+  // Public REST search also works without a token; keep its requests sequential.
+  const counts: Record<string, number> = {};
+  for (const [key, q] of entries) {
+    const { data } = await withGitHubErrors(() => getOctokit().search.issuesAndPullRequests({ q, per_page: 1 }));
+    if (data.incomplete_results) throw new Error("GitHub returned incomplete issue statistics; retry analysis later.");
+    counts[key] = data.total_count;
+  }
+  return counts as NonNullable<RawRepositoryData["issueStatistics"]>;
 }
 
 async function fetchReleases(owner: string, repo: string): Promise<RawRelease[]> {

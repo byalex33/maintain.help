@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), admin: vi.fn(), find: vi.fn(), first: vi.fn(), update: vi.fn(), updateMany: vi.fn(), transaction: vi.fn(), resolve: vi.fn(), fetch: vi.fn(), token: vi.fn(), permission: vi.fn() }));
+const mocks = vi.hoisted(() => ({ raw: vi.fn(), auth: vi.fn(), admin: vi.fn(), find: vi.fn(), first: vi.fn(), update: vi.fn(), updateMany: vi.fn(), transaction: vi.fn(), resolve: vi.fn(), fetch: vi.fn(), token: vi.fn(), permission: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminLogin: mocks.admin, getGitHubAccessToken: mocks.token }));
 vi.mock("@/lib/github/permissions", () => ({ checkClaimPermission: mocks.permission }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: { $transaction: mocks.transaction, repository: { findUnique: mocks.find, findFirst: mocks.first, update: mocks.update }, repositoryFeedback: { updateMany: mocks.resolve } } }));
+vi.mock("@/lib/db", () => ({ db: { $queryRaw: mocks.raw, $transaction: mocks.transaction, repository: { findUnique: mocks.find, findFirst: mocks.first, update: mocks.update }, repositoryFeedback: { updateMany: mocks.resolve } } }));
 vi.mock("@/lib/github/fetchRepositoryData", () => ({ fetchRepositoryData: mocks.fetch }));
 
 import { moderateRepository, resolveReport } from "@/app/admin/actions";
@@ -17,7 +17,8 @@ beforeEach(() => {
   mocks.auth.mockResolvedValue({ user: { githubLogin: "admin" } });
   mocks.admin.mockReturnValue(true);
   mocks.find.mockResolvedValue({ fullName: "owner/repo" });
-  mocks.transaction.mockImplementation(async (callback) => callback({ repository: { updateMany: mocks.updateMany, update: mocks.update } }));
+  mocks.raw.mockResolvedValue([{ key: "owner/repo" }]);
+  mocks.transaction.mockImplementation(async (callback) => callback({ $queryRaw: mocks.raw, repository: { findFirst: mocks.first, updateMany: mocks.updateMany, update: mocks.update } }));
 });
 
 function moderate(intent: string, confirmation = "") {
@@ -75,10 +76,10 @@ it.each([{ isIndexed: false, isLocked: false }, { isIndexed: true, isLocked: tru
 });
 
 it("also blocks a removed repository when GitHub returns a new name for its numeric ID", async () => {
-  mocks.first.mockResolvedValueOnce(null).mockResolvedValueOnce({ isIndexed: false, isLocked: false });
+  mocks.first.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({ isIndexed: false, isLocked: false });
   mocks.fetch.mockResolvedValue({ githubId: 123, fullName: "new-owner/repo" });
   await expect(ingestRepository("new-owner", "repo")).rejects.toThrow("deleted or locked");
-  expect(mocks.first.mock.calls[1][0].where.OR).toContainEqual({ githubId: BigInt(123) });
+  expect(mocks.first.mock.calls[2][0].where.OR).toContainEqual({ githubId: BigInt(123) });
 });
 
 it("rejects maintainer claims on a locked listing even with GitHub permissions", async () => {
@@ -93,7 +94,7 @@ it("rejects maintainer claims on a locked listing even with GitHub permissions",
 
 it("hides deleted detail pages by default and scopes report resolution to its repository", async () => {
   await getRepositoryDetail("owner", "repo");
-  expect(mocks.find.mock.calls[0][0].where).toEqual({ fullName: "owner/repo", isIndexed: true });
+  expect(mocks.find.mock.calls[0][0].where).toEqual({ fullName: "owner/repo", isIndexed: true, availability: { not: "PRIVATE" } });
   await getRepositoryDetail("owner", "repo", true);
   expect(mocks.find.mock.calls[1][0].where).toEqual({ fullName: "owner/repo" });
   await resolveReport("repository", "report");

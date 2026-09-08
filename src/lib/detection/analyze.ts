@@ -3,7 +3,7 @@ import { computeMetrics, type ComputedMetrics } from "./metrics";
 import { computeCapacityPressureScore } from "./scoring";
 import { computeBeginnerFriendlyScore, isBeginnerFriendly } from "./beginnerFriendly";
 import { determineStatus, applyMaintainerOverride, type StatusResult, type MaintainerOverrideInput } from "./status";
-import { detectHelpCategories, type CategoryResult } from "./categories";
+import { detectHelpCategories, applyMaintainerCategoryOverride, type CategoryResult } from "./categories";
 import { findSourcedPhraseMatches, buildEvidence, type EvidenceInput } from "./evidence";
 import { ANALYSIS_VERSION } from "./version";
 
@@ -41,7 +41,9 @@ export function analyzeRepository(raw: RawRepositoryData, options: AnalyzeOption
   const inferredStatus = determineStatus(raw, sourcedPhraseMatches, metrics, capacityResult, now);
   const status = applyMaintainerOverride(inferredStatus, options.maintainerOverride ?? null);
 
-  const categories = detectHelpCategories(raw, metrics, sourcedPhraseMatches, capacityResult);
+  const categories = applyMaintainerCategoryOverride(
+    detectHelpCategories(raw, metrics, sourcedPhraseMatches, capacityResult), options.maintainerOverride ?? null
+  );
   const evidence = buildEvidence({
     raw,
     sourcedPhraseMatches,

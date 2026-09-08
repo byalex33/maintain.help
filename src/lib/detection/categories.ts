@@ -1,4 +1,5 @@
-import { HelpCategory } from "@/generated/prisma/enums";
+import { HelpCategory, WantedHelpStatus } from "@/generated/prisma/enums";
+import type { MaintainerOverrideInput } from "./status";
 import type { RawRepositoryData } from "../github/types";
 import type { ComputedMetrics } from "./metrics";
 import type { PhraseMatch } from "./phrases";
@@ -7,6 +8,21 @@ import type { ScoreResult } from "./scoring";
 export interface CategoryResult {
   category: HelpCategory;
   verified: boolean;
+}
+
+export function applyMaintainerCategoryOverride(base: CategoryResult[], override: MaintainerOverrideInput | null): CategoryResult[] {
+  if (!override) return base;
+  const requested: Record<WantedHelpStatus, HelpCategory[]> = {
+    NEED_MAINTAINER: [HelpCategory.MAINTAINER],
+    NEED_COMAINTAINERS: [HelpCategory.MAINTAINER, HelpCategory.CO_MAINTAINER],
+    NEED_CONTRIBUTORS: [HelpCategory.CODE],
+    NEED_PR_REVIEWERS: [HelpCategory.PR_REVIEW],
+    NEED_ISSUE_TRIAGE: [HelpCategory.ISSUE_TRIAGE],
+    NEED_DOCUMENTATION_HELP: [HelpCategory.DOCUMENTATION],
+    NOT_LOOKING: [],
+  };
+  // The maintainer's current request replaces inferred or previously requested help.
+  return requested[override.status].map((category) => ({ category, verified: true }));
 }
 
 export const LABEL_CATEGORY_RULES: { pattern: RegExp; category: HelpCategory }[] = [

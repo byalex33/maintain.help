@@ -92,9 +92,9 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
       </div>
       {organizationsUnavailable ? <p role="status" className="text-sm text-neutral-500">We couldn&rsquo;t load your organizations. Connect GitHub organization access, then retry if needed.</p> : null}
       <div className="text-sm text-neutral-500">
-        <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="underline disabled:opacity-50">
+        <Button type="button" onClick={connectOrganizations} disabled={!user || connecting} variant="link" className="h-auto p-0">
           {connecting ? "Connecting…" : "Connect organizations"}
-        </button>
+        </Button>
         <p className="mt-1">Allow GitHub to share your organization memberships, including private memberships.</p>
       </div>
       {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}

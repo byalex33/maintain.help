@@ -1,1 +1,1 @@
-export const ANALYSIS_VERSION = 2;
+export const ANALYSIS_VERSION = 3;

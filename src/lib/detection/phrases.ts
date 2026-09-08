@@ -77,6 +77,9 @@ export function findPhraseMatches(text: string | null | undefined): PhraseMatch[
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(text)) !== null) {
+      // ponytail: conservative clause-level negation; use a language parser if broader language support is needed.
+      const prefix = text.slice(0, match.index).split(/[.!?;\n]|\bbut\b|\bhowever\b/i).at(-1) ?? "";
+      if (/\b(?:not|never|no(?: longer)?|\w+n['’]t)\b(?:\W+\w+){0,4}\W*$/i.test(prefix)) continue;
       const key = `${category}:${label}`;
       if (!seen.has(key)) {
         seen.add(key);

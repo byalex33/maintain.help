@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
@@ -48,9 +49,9 @@ export function SignInToast() {
         <div className="pointer-events-auto flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-neutral-950 shadow-lg dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50">
           <CircleCheck aria-hidden="true" className="size-5 shrink-0 text-green-600 dark:text-green-400" />
           <p className="flex-1 text-sm font-medium">You&rsquo;re signed in.</p>
-          <button type="button" aria-label="Dismiss notification" onClick={() => setVisible(false)} className="rounded-md p-1 text-neutral-500 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-neutral-400 dark:hover:bg-neutral-800">
+          <Button type="button" aria-label="Dismiss notification" onClick={() => setVisible(false)} variant="ghost" size="icon" className="size-7 text-muted-foreground">
             <X aria-hidden="true" className="size-4" />
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>

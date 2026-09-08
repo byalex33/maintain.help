@@ -7,6 +7,7 @@ import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { checkClaimPermission } from "@/lib/github/permissions";
 import { applyMaintainerOverride } from "@/lib/detection/status";
+import { applyMaintainerCategoryOverride } from "@/lib/detection/categories";
 import { WantedHelpStatus } from "@/generated/prisma/enums";
 
 export interface ClaimFormState {
@@ -34,28 +35,40 @@ export async function submitMaintainerRequest(
     return { error: "Your GitHub session has expired. Please sign in again." };
   }
 
-  const permission = await checkClaimPermission(accessToken, owner, repo, username);
-  if (!permission.eligible) {
-    return {
-      error: `GitHub reports your permission on ${owner}/${repo} as "${permission.permission ?? "none"}". Claiming requires admin or maintain access.`,
-    };
-  }
-
   const repository = await db.repository.findUnique({ where: { fullName: `${owner}/${repo}` } });
   if (!repository || !repository.isIndexed || repository.isLocked) {
     return { error: "This repository is unavailable or locked by a moderator." };
+  }
+
+  const permission = await checkClaimPermission(accessToken, owner, repo, session.user.githubId, repository.githubId);
+  if (!permission.eligible) {
+    return {
+      error: permission.permission === null
+        ? "We couldn't verify your GitHub access. Please try again, or sign in again to reconnect GitHub."
+        : `GitHub reports your permission on ${owner}/${repo} as "${permission.permission}". Claiming requires owner, admin or maintain access.`,
+    };
   }
 
   const status = formData.get("status");
   if (typeof status !== "string" || !Object.values(WantedHelpStatus).includes(status as WantedHelpStatus)) {
     return { error: "Please choose a valid status." };
   }
-  const message = ((formData.get("message") as string) || "").trim() || null;
-  const skillsWanted = ((formData.get("skills") as string) || "")
+  const messageInput = formData.get("message") ?? "";
+  const skillsInput = formData.get("skills") ?? "";
+  if (typeof messageInput !== "string" || typeof skillsInput !== "string") {
+    return { error: "Message and skills must be text." };
+  }
+  if (messageInput.length > 2000 || skillsInput.length > 1000) {
+    return { error: "Use at most 2,000 characters for your message and 1,000 for skills." };
+  }
+  const message = messageInput.trim() || null;
+  const skillsWanted = skillsInput
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 15);
+    .filter(Boolean);
+  if (skillsWanted.length > 15 || skillsWanted.some((skill) => skill.length > 50)) {
+    return { error: "Use at most 15 skills, each no longer than 50 characters." };
+  }
 
   const overridden = applyMaintainerOverride(
     {
@@ -69,8 +82,9 @@ export async function submitMaintainerRequest(
 
   try {
     await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Repository" WHERE id = ${repository.id} FOR UPDATE`;
       await tx.repository.update({
-        where: { id: repository.id, isIndexed: true, isLocked: false },
+        where: { id: repository.id, githubId: repository.githubId, isIndexed: true, isLocked: false },
         data: {
           status: overridden.status,
           statusConfidence: overridden.confidence,
@@ -88,6 +102,17 @@ export async function submitMaintainerRequest(
           reason: overridden.reason,
         },
       });
+
+      const categories = applyMaintainerCategoryOverride(
+        await tx.repositoryHelpCategory.findMany({ where: { repositoryId: repository.id } }),
+        { status: status as WantedHelpStatus, message }
+      );
+      await tx.repositoryHelpCategory.deleteMany({ where: { repositoryId: repository.id } });
+      if (categories.length) {
+        await tx.repositoryHelpCategory.createMany({
+          data: categories.map(({ category, verified }) => ({ repositoryId: repository.id, category, verified })),
+        });
+      }
 
       await tx.maintainerRequest.updateMany({
         where: { repositoryId: repository.id, isActive: true },

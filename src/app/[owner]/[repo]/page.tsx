@@ -16,6 +16,8 @@ import { auth, isAdminLogin } from "@/lib/auth";
 import { ModerationControls } from "@/components/repo/moderation-controls";
 import { resolveReport } from "@/app/admin/actions";
 import { db } from "@/lib/db";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { setRepositorySaved } from "@/app/saved/actions";
 import { submitRepositoryFeedback } from "./feedback/actions";
@@ -219,15 +221,18 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             <CardContent>
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
                 {verifiedMaintainer ? <p className="text-xs text-emerald-600">Verified maintainer feedback receives higher trust.</p> : <p className="text-xs text-neutral-500">Feedback is reviewed and does not automatically change the status.</p>}
-                <select name="type" className="h-9 w-full rounded-md border border-neutral-200 bg-transparent px-2 text-sm dark:border-neutral-800" required defaultValue="INACCURATE">
-                  {verifiedMaintainer ? <><option value="NEED_CONTRIBUTORS">We&rsquo;re looking for contributors</option>
-                  <option value="NEED_COMAINTAINERS">We&rsquo;re looking for co-maintainers</option>
-                  <option value="NEED_SUCCESSOR">We&rsquo;re looking for a successor</option>
-                  <option value="NOT_LOOKING">We&rsquo;re not looking for help</option>
-                  <option value="INTENTIONALLY_STABLE">This project is intentionally stable</option></> : null}
-                  <option value="INACCURATE">This classification is inaccurate</option>
-                </select>
-                <textarea name="notes" maxLength={2000} placeholder="Optional context" className="min-h-20 w-full rounded-md border border-neutral-200 bg-transparent p-2 text-sm dark:border-neutral-800" />
+                <Select name="type" required defaultValue="INACCURATE">
+                  <SelectTrigger aria-label="Feedback type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {verifiedMaintainer ? <><SelectItem value="NEED_CONTRIBUTORS">We&rsquo;re looking for contributors</SelectItem>
+                    <SelectItem value="NEED_COMAINTAINERS">We&rsquo;re looking for co-maintainers</SelectItem>
+                    <SelectItem value="NEED_SUCCESSOR">We&rsquo;re looking for a successor</SelectItem>
+                    <SelectItem value="NOT_LOOKING">We&rsquo;re not looking for help</SelectItem>
+                    <SelectItem value="INTENTIONALLY_STABLE">This project is intentionally stable</SelectItem></> : null}
+                    <SelectItem value="INACCURATE">This classification is inaccurate</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Textarea name="notes" maxLength={2000} placeholder="Optional context" aria-label="Additional feedback context" />
                 <Button type="submit" size="sm">Send feedback</Button>
               </form> : <Button asChild variant="outline" size="sm"><Link href="/sign-in">Sign in to send feedback</Link></Button>}
             </CardContent>
@@ -239,7 +244,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
                 <input type="hidden" name="type" value="REPORT" />
                 <label className="block space-y-2 text-xs font-medium">What should we look into?
-                  <textarea name="notes" required minLength={1} maxLength={2000} rows={3} placeholder="Spam, misleading information, or another concern…" className="w-full rounded-md border border-neutral-200 bg-white p-2 text-sm dark:border-neutral-800 dark:bg-neutral-950" />
+                  <Textarea name="notes" required minLength={1} maxLength={2000} rows={3} placeholder="Spam, misleading information, or another concern…" />
                 </label>
                 <p className="text-xs text-neutral-500">Your report and account name are visible only to admins.</p>
                 <Button type="submit" variant="outline" size="sm">Send report</Button>

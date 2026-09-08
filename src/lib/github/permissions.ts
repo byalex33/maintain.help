@@ -28,16 +28,26 @@ export async function checkClaimPermission(
   userAccessToken: string,
   owner: string,
   repo: string,
-  username: string
+  githubId: string,
+  repositoryGithubId: bigint
 ): Promise<ClaimPermissionCheck> {
   const octokit = new Octokit({ auth: userAccessToken });
   try {
-    const { data } = await octokit.repos.getCollaboratorPermissionLevel({
+    const { data } = await octokit.repos.get({
       owner,
       repo,
-      username,
     });
-    const permission = data.permission ?? null;
+    if (data.private || String(data.id) !== String(repositoryGithubId)) {
+      return { eligible: false, permission: null };
+    }
+    // Match the verified, stable identity used when adding a repository.
+    const permission = String(data.owner.id) === githubId || data.permissions?.admin
+      ? "admin"
+      : data.permissions?.maintain ? "maintain"
+      : data.permissions?.push ? "write"
+      : data.permissions?.triage ? "triage"
+      : data.permissions?.pull ? "read"
+      : data.permissions ? "none" : null;
     return { eligible: canClaimWithPermission(permission), permission };
   } catch {
     return { eligible: false, permission: null };

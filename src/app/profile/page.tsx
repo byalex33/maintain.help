@@ -23,15 +23,15 @@ export default async function ProfilePage() {
     where: { id: session.user.id },
     select: {
       createdAt: true,
-      _count: { select: { savedRepositories: { where: { repository: { isIndexed: true } } } } },
+      _count: { select: { savedRepositories: { where: { repository: { isIndexed: true, availability: { not: "PRIVATE" } } } } } },
       savedRepositories: {
-        where: { repository: { isIndexed: true } },
+        where: { repository: { isIndexed: true, availability: { not: "PRIVATE" } } },
         select: { repository: { select: repositoryCardSelect } },
         orderBy: { createdAt: "desc" },
         take: 3,
       },
       submittedRepositories: {
-        where: { isIndexed: true },
+        where: { isIndexed: true, availability: { not: "PRIVATE" } },
         select: repositoryCardSelect,
         orderBy: { createdAt: "desc" },
       },
