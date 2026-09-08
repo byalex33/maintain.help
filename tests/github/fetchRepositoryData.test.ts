@@ -90,20 +90,20 @@ describe("shared repository fetch", () => {
     await expect(fetchRepositoryData("acme", "widget")).rejects.toThrow("incomplete issue statistics");
   });
 
-  it.each([1, 300])("preserves complete closed PR metrics and omits capped samples (%i items)", async (count) => {
+  it.each([1, 300, 301])("preserves complete closed PR metrics and omits capped samples (%i items)", async (count) => {
     const now = new Date();
     const createdAt = new Date(now.getTime() - 48 * 3_600_000).toISOString();
     const closedAt = new Date(now.getTime() - 24 * 3_600_000).toISOString();
-    api.issues.listForRepo.mockImplementation(({ state, page }) => ({ data: state === "open" ? [] : Array.from({ length: Math.min(count, 100) }, (_, i) => ({
+    api.issues.listForRepo.mockImplementation(({ state, page }) => ({ headers: { link: state === "closed" && page * 100 < count ? '<https://api.github.com/next>; rel="next"' : "" }, data: state === "open" ? [] : Array.from({ length: Math.max(0, Math.min(count - (page - 1) * 100, 100)) }, (_, i) => ({
       id: page * 100 + i, number: page * 100 + i, title: "Fix", html_url: "https://github.com/acme/widget/pull/1",
       state: "closed", pull_request: {}, labels: [], created_at: createdAt, updated_at: closedAt, closed_at: closedAt,
     })) }));
     const raw = await fetchRepositoryData("acme", "widget");
     const analysis = analyzeRepository({ ...raw, contributorStats: [{ login: "alice", totalCommits: 1, weeks: [{ weekStart: now.toISOString(), commits: 1 }] }] }, { now });
-    expect(raw.closedIssuesTruncated).toBe(count === 300);
-    expect(analysis.metrics.medianPrCycleTimeHours).toBe(count === 300 ? null : 24);
-    expect(analysis.evidence.some((item) => item.title === "Closed issue details are sampled")).toBe(count === 300);
-    expect(analysis.evidence.some((item) => item.title === "Recent pull requests are typically closed within two weeks")).toBe(count === 1);
+    expect(raw.closedIssuesTruncated).toBe(count > 300);
+    expect(analysis.metrics.medianPrCycleTimeHours).toBe(count > 300 ? null : 24);
+    expect(analysis.evidence.some((item) => item.title === "Closed issue details are sampled")).toBe(count > 300);
+    expect(analysis.evidence.some((item) => item.title === "Recent pull requests are typically closed within two weeks")).toBe(count <= 300);
     expect(api.issues.listForRepo).toHaveBeenCalledWith(expect.objectContaining({ state: "closed", sort: "updated", direction: "desc", since: expect.any(String) }));
   });
 });

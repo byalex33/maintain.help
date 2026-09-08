@@ -42,8 +42,8 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     readme,
     contributing,
     hasIssueTemplates,
-    issues,
-    closedIssues,
+    openSample,
+    closedSample,
     releases,
     commitActivity,
     contributorStats,
@@ -62,6 +62,8 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     fetchLabels(owner, repo),
     r.has_discussions ? fetchDiscussions(owner, repo) : Promise.resolve([]),
   ]);
+  const issues = openSample.issues;
+  const closedIssues = closedSample.issues;
   const issueStatistics = await fetchIssueStatistics(r.owner.login, r.name, [...labels, ...issues.flatMap((issue) => issue.labels)]);
 
   const humanCommitActivity = contributorStats.length > 0 ? contributorActivity(contributorStats) : commitActivity;
@@ -97,8 +99,8 @@ export async function fetchRepositoryData(owner: string, repo: string): Promise<
     hasIssueTemplates,
     // An item can close between the two requests; keep its latest state once.
     issues: [...new Map([...issues, ...closedIssues].map((issue) => [issue.githubIssueId, issue])).values()],
-    issuesTruncated: issues.length < issueStatistics.openIssues + issueStatistics.openPullRequests,
-    closedIssuesTruncated: closedIssues.length === MAX_ISSUE_PAGES * ISSUES_PER_PAGE,
+    issuesTruncated: openSample.truncated || issues.length < issueStatistics.openIssues + issueStatistics.openPullRequests,
+    closedIssuesTruncated: closedSample.truncated,
     issueStatistics,
     releases,
     commitActivity: humanCommitActivity,
@@ -172,11 +174,11 @@ async function fetchHasIssueTemplates(owner: string, repo: string): Promise<bool
   }
 }
 
-async function fetchIssues(owner: string, repo: string, state: "open" | "closed" = "open"): Promise<RawIssue[]> {
+async function fetchIssues(owner: string, repo: string, state: "open" | "closed" = "open"): Promise<{ issues: RawIssue[]; truncated: boolean }> {
   const octokit = getOctokit();
   const results: RawIssue[] = [];
   for (let page = 1; page <= MAX_ISSUE_PAGES; page++) {
-    const { data } = await withGitHubErrors(() =>
+    const { data, headers } = await withGitHubErrors(() =>
       octokit.issues.listForRepo({
         owner,
         repo,
@@ -205,9 +207,12 @@ async function fetchIssues(owner: string, repo: string, state: "open" | "closed"
         authorLogin: issue.user?.login ?? null,
       });
     }
-    if (data.length < ISSUES_PER_PAGE) break;
+    if (data.length < ISSUES_PER_PAGE) return { issues: results, truncated: false };
+    if (page === MAX_ISSUE_PAGES) {
+      return { issues: results, truncated: /rel="next"/.test(headers?.link ?? "") };
+    }
   }
-  return results;
+  return { issues: results, truncated: false };
 }
 
 async function fetchIssueStatistics(owner: string, repo: string, labels: string[]): Promise<NonNullable<RawRepositoryData["issueStatistics"]>> {
