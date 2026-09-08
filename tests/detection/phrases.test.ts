@@ -2,6 +2,28 @@ import { describe, it, expect } from "vitest";
 import { findPhraseMatches } from "@/lib/detection/phrases";
 
 describe("findPhraseMatches", () => {
+  it.each(["help wanted!", "not help wanted "])("handles dense phrase input without growing prefix scans: %s", (phrase) => {
+    const text = phrase.repeat(8000);
+    const start = performance.now();
+    const matches = findPhraseMatches(text);
+    const elapsed = performance.now() - start;
+    expect(matches).toHaveLength(phrase.startsWith("not") ? 0 : 1);
+    // A generous ceiling: the regression takes seconds on this small input.
+    expect(elapsed).toBeLessThan(500);
+  });
+
+  it.each(["not", "no longer", "aren't", "aren’t"])("retains negation across four intervening words: %s", (negation) => {
+    expect(findPhraseMatches(`We ${negation} one two three four ${" ".repeat(1000)}help wanted`)).toEqual([]);
+    expect(findPhraseMatches(`We ${negation} one two three four five help wanted`)).toHaveLength(1);
+  });
+
+  it("finds the first affirmative match after repeated negated matches", () => {
+    const prefix = "not help wanted ".repeat(8000);
+    const matches = findPhraseMatches(`${prefix}but help wanted! help wanted!`);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].index).toBe(prefix.length + 4);
+  });
+
   it("detects seeking-maintainers language", () => {
     const matches = findPhraseMatches("We are looking for maintainers to help run this project.");
     expect(matches).toHaveLength(1);

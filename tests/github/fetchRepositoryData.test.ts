@@ -43,6 +43,25 @@ beforeEach(() => {
 });
 
 describe("shared repository fetch", () => {
+  it("does not use closed samples to hide a truncated open backlog", async () => {
+    api.issues.listForRepo.mockImplementation(({ state, page }) => ({
+      data: Array.from({ length: 100 }, (_, i) => ({
+        id: (state === "open" ? 0 : 1000) + page * 100 + i,
+        number: page * 100 + i, title: "Issue", state, labels: [],
+        created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
+      })),
+    }));
+    // The other aggregate fields do not affect whether the open sample is complete.
+    const counts = { openIssues: 350, openPullRequests: 50, newIssuesLast90d: 0,
+      closedIssuesLast90d: 0, newPullRequestsLast90d: 0, closedPullRequestsLast90d: 0,
+      helpWantedIssueCount: 0, goodFirstIssueCount: 0 };
+    graphql.mockResolvedValue(Object.fromEntries(Object.entries(counts).map(([key, issueCount]) => [key, { issueCount }])));
+    const raw = await fetchRepositoryData("acme", "widget");
+    expect(raw.issues).toHaveLength(600);
+    expect(raw.issuesTruncated).toBe(true);
+    expect(analyzeRepository(raw).metrics.medianOpenIssueAgeDays).toBeNull();
+  });
+
   it("rejects private repositories before fetching content", async () => {
     api.repos.get.mockResolvedValue({ data: { private: true } });
     await expect(fetchRepositoryData("acme", "widget")).rejects.toMatchObject({ name: "GitHubPrivateRepositoryError" });
