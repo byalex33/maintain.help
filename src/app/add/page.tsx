@@ -7,6 +7,8 @@ import { AddRepositoryForm } from "@/components/add/add-repository-form";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { getAddablePublicRepositories, getGitHubOrganizations } from "@/lib/github/ownedRepositories";
 
+import { organizationAccessRequired } from "@/lib/github/organizationAccess";
+
 export const metadata: Metadata = {
   title: "Add a repository",
   description: "Add a GitHub repository to maintain.help for analysis.",
@@ -19,6 +21,7 @@ export default async function AddRepositoryPage() {
   let error: string | null = null;
   let organizations: string[] = [];
   let organizationsUnavailable = false;
+  let needsOrganizationAccess = false;
   try {
     const token = await getGitHubAccessToken(session.user.id);
     if (token) {
@@ -29,7 +32,10 @@ export default async function AddRepositoryPage() {
       if (repos.status === "rejected") throw repos.reason;
       repositories = repos.value;
       if (orgs.status === "fulfilled") organizations = orgs.value;
-      else organizationsUnavailable = true;
+      else {
+        organizationsUnavailable = true;
+        needsOrganizationAccess = organizationAccessRequired(orgs.reason);
+      }
     }
     else error = "GitHub access is unavailable. Sign out, then sign in with GitHub again to reconnect.";
   } catch {
@@ -50,7 +56,7 @@ export default async function AddRepositoryPage() {
               <Button type="submit" variant="link" className="h-auto p-0">Try again</Button>
             </form>
           </div>
-        ) : <AddRepositoryForm repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} />}
+        ) : <AddRepositoryForm repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} needsOrganizationAccess={needsOrganizationAccess} />}
       </div>
     </div>
   );
