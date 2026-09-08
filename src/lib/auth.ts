@@ -1,3 +1,4 @@
+import { isGitHubProvider } from "@/lib/github/provider";
 import "server-only";
 import { cache } from "react";
 import { auth as clerkAuth, clerkClient } from "@clerk/nextjs/server";
@@ -11,7 +12,7 @@ const githubIdentity = cache(async () => {
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
   const accounts = user.externalAccounts.filter((account) =>
-    (account.provider === "github" || account.provider === "oauth_github") &&
+    isGitHubProvider(account.provider) &&
     account.verification?.status === "verified"
   );
   // Fail closed: permissions must belong to one unambiguous, verified GitHub identity.
