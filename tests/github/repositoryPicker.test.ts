@@ -4,10 +4,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   search: "", owner: "", index: 0, effects: [] as (() => void)[],
-  reauthorize: vi.fn(), signedIn: false,
+  reauthorize: vi.fn(), signedIn: false, provider: "github",
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@clerk/nextjs", () => ({ useUser: () => ({ user: state.signedIn ? { verifiedExternalAccounts: [{ id: "account-1", provider: "github", reauthorize: state.reauthorize }] } : null }) }));
+vi.mock("@clerk/nextjs", () => ({ useUser: () => ({ user: state.signedIn ? { verifiedExternalAccounts: [{ id: "account-1", provider: state.provider, reauthorize: state.reauthorize }] } : null }) }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useEffect: (effect: () => void) => { state.effects.push(effect); },
@@ -20,7 +20,7 @@ const repositories = ["alice/personal", "team/first", "team/second", "another/pr
   id, fullName, url: `https://github.com/${fullName}`, description: null,
 }));
 
-beforeEach(() => { state.search = ""; state.owner = ""; state.index = 0; state.effects = []; state.signedIn = false; state.reauthorize.mockReset(); });
+beforeEach(() => { state.search = ""; state.owner = ""; state.index = 0; state.effects = []; state.signedIn = false; state.provider = "github"; state.reauthorize.mockReset(); });
 afterEach(() => vi.unstubAllGlobals());
 
 it("shows all repositories and one filter per account or organization", () => {
@@ -71,7 +71,8 @@ it("does not ask to connect organizations after they load successfully", () => {
 });
 
 
-it("starts GitHub consent automatically only for missing access, once across remounts", async () => {
+it.each(["github", "oauth_github"])("starts %s consent automatically only for missing access, once across remounts", async (provider) => {
+  state.provider = provider;
   const entries = new Map<string, string>();
   const assign = vi.fn();
   vi.stubGlobal("window", {

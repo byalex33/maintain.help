@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 
+import { isGitHubProvider } from "@/lib/github/provider";
 import { connectGitHubOrganizationsAutomatically } from "@/lib/github/organizationAccess";
 
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
     setConnecting(true);
     setError(null);
     try {
-      const account = user?.verifiedExternalAccounts.find((account) => account.provider === "github");
+      const account = user?.verifiedExternalAccounts.find((account) => isGitHubProvider(account.provider));
       if (!account) throw new Error("GitHub account unavailable");
       const result = await account.reauthorize({ additionalScopes: ["read:org"], redirectUrl: "/add" });
       const url = result.verification?.externalVerificationRedirectURL;
@@ -51,7 +52,7 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
   }, [user]);
 
   useEffect(() => {
-    const account = user?.verifiedExternalAccounts.find((account) => account.provider === "github");
+    const account = user?.verifiedExternalAccounts.find((account) => isGitHubProvider(account.provider));
     if (!needsOrganizationAccess || !account) return;
     // Accessing sessionStorage itself can throw when browser storage is disabled.
     try {
