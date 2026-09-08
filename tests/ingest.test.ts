@@ -1,25 +1,26 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { makeRawRepository } from "./fixtures/rawRepository";
 
-const mocks = vi.hoisted(() => ({ first: vi.fn(), raw: vi.fn(), txRaw: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(), fetch: vi.fn(), persist: vi.fn(), transaction: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: { repository: { findFirst: mocks.first, updateMany: mocks.updateMany }, $queryRaw: mocks.raw, $transaction: mocks.transaction } }));
+const mocks = vi.hoisted(() => ({ first: vi.fn(), many: vi.fn(), release: vi.fn(), raw: vi.fn(), txRaw: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(), fetch: vi.fn(), persist: vi.fn(), transaction: vi.fn() }));
+vi.mock("@/lib/db", () => ({ db: { repositoryAnalysisLease: { deleteMany: mocks.release }, repository: { findFirst: mocks.first, updateMany: mocks.updateMany }, $queryRaw: mocks.raw, $transaction: mocks.transaction } }));
 vi.mock("@/lib/github/fetchRepositoryData", () => ({ fetchRepositoryData: mocks.fetch }));
 vi.mock("@/lib/detection/persist", () => ({ persistRepositoryAnalysis: mocks.persist }));
 
 import { ingestRepository, RepositoryAnalysisBusyError } from "@/lib/ingest";
 import { GitHubNotFoundError, GitHubPrivateRepositoryError } from "@/lib/github/client";
 
-const listing = { id: "repo", isIndexed: true, isLocked: false, lastAnalyzedAt: null, analysisFailureCount: 0, maintainerRequests: [] };
+const listing = { id: "repo", githubId: BigInt(1), isIndexed: true, isLocked: false, lastAnalyzedAt: null, analysisFailureCount: 0, maintainerRequests: [] };
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.first.mockResolvedValue(listing);
+  mocks.many.mockResolvedValue([listing]);
   mocks.raw.mockResolvedValue([{ key: "acme/widget" }]);
   mocks.txRaw.mockResolvedValue([{ key: "acme/widget" }]);
   mocks.fetch.mockResolvedValue(makeRawRepository());
   mocks.upsert.mockImplementation(async ({ update }) => ({ id: "repo", ...update }));
   mocks.transaction.mockImplementation(async (callback) => callback({
     $queryRaw: mocks.txRaw,
-    repository: { findFirst: mocks.first, upsert: mocks.upsert, updateMany: mocks.updateMany },
+    repository: { findMany: mocks.many, upsert: mocks.upsert, updateMany: mocks.updateMany },
   }));
 });
 
@@ -55,13 +56,13 @@ it("rechecks freshness after acquiring the lease", async () => {
 });
 
 it("reads the latest maintainer request after taking the row lock", async () => {
-  mocks.first.mockResolvedValueOnce(listing).mockResolvedValueOnce(listing).mockResolvedValueOnce({
+  mocks.many.mockResolvedValueOnce([{
     ...listing, maintainerRequests: [{ status: "NEED_MAINTAINER", message: "Please help" }],
-  });
+  }]);
   const saved = await ingestRepository("acme", "widget");
   expect(saved).toMatchObject({ status: "SEEKING_MAINTAINERS", statusVerified: true, analysisFailureCount: 0 });
   expect(mocks.txRaw.mock.calls[1][0].join("")).toContain('FROM "Repository"');
-  expect(mocks.txRaw.mock.invocationCallOrder[1]).toBeLessThan(mocks.first.mock.invocationCallOrder[2]);
+  expect(mocks.txRaw.mock.invocationCallOrder[1]).toBeLessThan(mocks.many.mock.invocationCallOrder[0]);
 });
 
 it("does not let an expired worker persist over its replacement", async () => {
@@ -92,5 +93,23 @@ it("marks private listings unavailable for public display and never persists the
   mocks.fetch.mockRejectedValue(new GitHubPrivateRepositoryError("acme", "widget"));
   await expect(ingestRepository("acme", "widget")).rejects.toThrow("private");
   expect(mocks.updateMany.mock.calls[0][0].data.availability).toBe("PRIVATE");
+  expect(mocks.persist).not.toHaveBeenCalled();
+});
+
+it.each(["success", "failure", "moderation"])("releases only its own lease after %s", async (outcome) => {
+  if (outcome === "failure") mocks.fetch.mockRejectedValue(new Error("GitHub unavailable"));
+  if (outcome === "moderation") mocks.first.mockResolvedValueOnce(listing).mockResolvedValueOnce({ ...listing, isLocked: true });
+  await ingestRepository("acme", "widget").catch(() => undefined);
+  expect(mocks.release).toHaveBeenCalledExactlyOnceWith({ where: { key: "acme/widget", token: mocks.raw.mock.calls[0][2] } });
+});
+
+it("hides a replaced listing without transferring claims or writing replacement data", async () => {
+  mocks.many.mockResolvedValue([{ ...listing, githubId: BigInt(999) }]);
+  await expect(ingestRepository("acme", "widget")).rejects.toThrow("different GitHub repository");
+  expect(mocks.updateMany).toHaveBeenCalledWith({
+    where: { id: "repo", isIndexed: true, isLocked: false },
+    data: expect.objectContaining({ isIndexed: false, availability: "UNAVAILABLE", nextAnalysisAt: null }),
+  });
+  expect(mocks.upsert).not.toHaveBeenCalled();
   expect(mocks.persist).not.toHaveBeenCalled();
 });

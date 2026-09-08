@@ -15,6 +15,12 @@ import type { Repository } from "@/generated/prisma/client";
 export class RepositoryModerationError extends Error {}
 export class RepositoryAnalysisBusyError extends Error {}
 
+class RepositoryIdentityChangedError extends Error {
+  constructor(public repositoryId: string) {
+    super("This repository name now belongs to a different GitHub repository. The old listing has been hidden.");
+  }
+}
+
 const HOUR = 60 * 60 * 1000;
 
 async function cachedRepository(listing: Repository, submittedById?: string) {
@@ -72,17 +78,21 @@ export async function ingestRepository(owner: string, repo: string, options: { s
       `;
       if (!owned.length) return;
       await tx.repository.updateMany({
-        where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" }, isIndexed: true, isLocked: false },
+        where: { ...(error instanceof RepositoryIdentityChangedError ? { id: error.repositoryId } : { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } }), isIndexed: true, isLocked: false },
         data: {
           analysisError: message,
           nextAnalysisAt,
           analysisFailureCount: { increment: 1 },
           ...(error instanceof GitHubNotFoundError ? { availability: RepositoryAvailability.UNAVAILABLE } : {}),
           ...(error instanceof GitHubPrivateRepositoryError ? { availability: RepositoryAvailability.PRIVATE } : {}),
+          ...(error instanceof RepositoryIdentityChangedError ? { isIndexed: false, isFeatured: false, availability: RepositoryAvailability.UNAVAILABLE, nextAnalysisAt: null } : {}),
         },
       });
     });
     throw error;
+  } finally {
+    // A timed-out worker must never release a newer worker's lease.
+    await db.repositoryAnalysisLease.deleteMany({ where: { key, token } });
   }
 }
 
@@ -93,11 +103,14 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
     `;
     if (!lease.length) throw new RepositoryAnalysisBusyError("The analysis timed out. Please try again.");
     // Claims take this same row lock before changing requests and derived classifications.
-    await tx.$queryRaw`SELECT id FROM "Repository" WHERE "githubId" = ${BigInt(raw.githubId)} FOR UPDATE`;
-    const existing = await tx.repository.findFirst({
-      where: { OR: [{ githubId: BigInt(raw.githubId) }, { fullName: raw.fullName }] },
+    await tx.$queryRaw`SELECT id FROM "Repository" WHERE "githubId" = ${BigInt(raw.githubId)} OR LOWER("fullName") = ${raw.fullName.toLowerCase()} ORDER BY id FOR UPDATE`;
+    const matches = await tx.repository.findMany({
+      where: { OR: [{ githubId: BigInt(raw.githubId) }, { fullName: { equals: raw.fullName, mode: "insensitive" } }] },
       include: { maintainerRequests: { where: { isActive: true }, orderBy: { createdAt: "desc" }, take: 1 } },
     });
+    const replaced = matches.find((row) => row.githubId !== BigInt(raw.githubId));
+    if (replaced) throw new RepositoryIdentityChangedError(replaced.id);
+    const existing = matches[0];
     // The numeric ID also protects renamed repositories from being re-imported.
     if (existing && (!existing.isIndexed || existing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
 
