@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 
+import { connectGitHubOrganizationsAutomatically } from "@/lib/github/organizationAccess";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export function AddRepositoryForm({ repositories, organizations = [], personalLogin, organizationsUnavailable = false }: {
+export function AddRepositoryForm({ repositories, organizations = [], personalLogin, organizationsUnavailable = false, needsOrganizationAccess = false }: {
   repositories: { id: number; fullName: string; description: string | null; url: string }[];
   organizations?: string[];
   personalLogin?: string;
   organizationsUnavailable?: boolean;
+  needsOrganizationAccess?: boolean;
 }) {
   const router = useRouter();
   const { user } = useUser();
@@ -31,7 +34,7 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
     repo.fullName.toLowerCase().includes(search.trim().toLowerCase())
   );
 
-  async function connectOrganizations() {
+  const connectOrganizations = useCallback(async () => {
     setConnecting(true);
     setError(null);
     try {
@@ -45,7 +48,18 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
       setError("Could not connect your organizations. Please try again.");
       setConnecting(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    const account = user?.verifiedExternalAccounts.find((account) => account.provider === "github");
+    if (!needsOrganizationAccess || !account) return;
+    // Accessing sessionStorage itself can throw when browser storage is disabled.
+    try {
+      void connectGitHubOrganizationsAutomatically(account.id, window.sessionStorage, connectOrganizations);
+    } catch {
+      // Keep the manual connection button available.
+    }
+  }, [needsOrganizationAccess, user, connectOrganizations]);
 
   async function addRepository(repository: typeof repositories[number]) {
     setSelectedId(repository.id);
@@ -90,13 +104,22 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
           </Button>
         ))}
       </div>
-      {organizationsUnavailable ? <p role="status" className="text-sm text-neutral-500">We couldn&rsquo;t load your organizations. Connect GitHub organization access, then retry if needed.</p> : null}
-      <div className="text-sm text-neutral-500">
-        <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="underline disabled:opacity-50">
-          {connecting ? "Connecting…" : "Connect organizations"}
-        </button>
-        <p className="mt-1">Allow GitHub to share your organization memberships, including private memberships.</p>
-      </div>
+      {needsOrganizationAccess ? (
+        <div className="text-sm text-neutral-500">
+          <p role="status">Approve GitHub organization access once to load your memberships automatically. Your organization may also require an admin to approve this connection.</p>
+          <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="mt-1 underline disabled:opacity-50">
+            {connecting ? "Connecting…" : "Connect organizations"}
+          </button>
+        </div>
+      ) : organizationsUnavailable ? (
+        <div className="text-sm text-neutral-500">
+          <p role="status">GitHub organizations are unavailable right now. Try again shortly. If this continues, check your GitHub connection and organization access.</p>
+          <button type="button" onClick={() => router.refresh()} className="mt-1 underline">Retry organizations</button>
+          <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="ml-3 underline disabled:opacity-50">
+            {connecting ? "Connecting…" : "Reconnect GitHub"}
+          </button>
+        </div>
+      ) : null}
       {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       {repositories.length === 0 && !owner ? <p className="text-sm text-neutral-500">No public repositories with owner, admin, or maintainer access were found.</p> : null}
       {(repositories.length > 0 || owner) && matches.length === 0 ? (
