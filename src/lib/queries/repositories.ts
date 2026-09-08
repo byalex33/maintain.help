@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { HelpStatus, HelpCategory } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
-const PUBLIC_REPOSITORY = { isIndexed: true, availability: { not: "PRIVATE" as const } };
+export const PUBLIC_REPOSITORY = { isIndexed: true, availability: "AVAILABLE" as const };
 const ACCEPTING_HELP = { maintainerRequests: { none: { isActive: true, status: "NOT_LOOKING" as const } } };
 
 const CONFIDENCE_ORDER: Record<string, number> = { VERIFIED: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };

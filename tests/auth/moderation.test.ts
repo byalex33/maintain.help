@@ -95,7 +95,7 @@ it("rejects maintainer claims on a locked listing even with GitHub permissions",
 
 it("hides deleted detail pages by default and scopes report resolution to its repository", async () => {
   await getRepositoryDetail("owner", "repo");
-  expect(mocks.find.mock.calls[0][0].where).toEqual({ fullName: "owner/repo", isIndexed: true, availability: { not: "PRIVATE" } });
+  expect(mocks.find.mock.calls[0][0].where).toEqual({ fullName: "owner/repo", isIndexed: true, availability: "AVAILABLE" });
   await getRepositoryDetail("owner", "repo", true);
   expect(mocks.find.mock.calls[1][0].where).toEqual({ fullName: "owner/repo" });
   await resolveReport("repository", "report");
