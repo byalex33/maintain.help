@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { repositoryCardSelect } from "@/lib/queries/repositories";
+import { PUBLIC_REPOSITORY, repositoryCardSelect } from "@/lib/queries/repositories";
 import { RepoCard } from "@/components/repo/repo-card";
 
 export default async function SavedRepositoriesPage() {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
   const saved = await db.savedRepository.findMany({
-    where: { userId: session.user.id, repository: { isIndexed: true } },
+    where: { userId: session.user.id, repository: PUBLIC_REPOSITORY },
     select: { repository: { select: repositoryCardSelect } },
     orderBy: { createdAt: "desc" },
   });

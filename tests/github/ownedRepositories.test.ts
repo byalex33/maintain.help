@@ -9,7 +9,7 @@ vi.mock("@octokit/rest", () => ({ Octokit: class {
   paginate = mocks.paginate;
 } }));
 vi.mock("@/lib/queries/repositories", () => ({ repositoryExists: mocks.exists }));
-vi.mock("@/lib/ingest", () => ({ ingestRepository: mocks.ingest, RepositoryModerationError: class extends Error {} }));
+vi.mock("@/lib/ingest", () => ({ ingestRepository: mocks.ingest, RepositoryModerationError: class extends Error {}, RepositoryAnalysisBusyError: class extends Error {} }));
 
 import { getAddablePublicRepositories, getGitHubOrganizations } from "@/lib/github/ownedRepositories";
 import { POST } from "@/app/api/repositories/analyze/route";

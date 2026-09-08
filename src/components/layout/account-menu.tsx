@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
@@ -42,7 +43,7 @@ export function AccountMenu({ username, image, isAdmin = false }: { username: st
         {isAdmin ? <Link href="/admin"><ShieldCheck aria-hidden="true" className="size-4" />Admin</Link> : null}
         <div className="my-1 border-t border-neutral-200 dark:border-neutral-800" />
         <SignOutButton redirectUrl="/">
-          <button type="button" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800"><LogOut aria-hidden="true" className="size-4" />Sign Out</button>
+          <Button type="button" variant="ghost" className="w-full justify-start px-3"><LogOut aria-hidden="true" className="size-4" />Sign Out</Button>
         </SignOutButton>
       </nav>
     </details>

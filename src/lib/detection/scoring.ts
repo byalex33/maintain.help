@@ -122,7 +122,7 @@ export function computeCapacityPressureScore(m: ComputedMetrics): ScoreResult {
   if (m.staleDependencyOrSecurityPrCount > 0) {
     signals.push({
       id: "stale-dependency-security-prs",
-      description: `${m.staleDependencyOrSecurityPrCount} dependency/security pull request(s) open for more than 30 days`,
+      description: `${m.issuesSampled ? "At least " : ""}${m.staleDependencyOrSecurityPrCount} dependency/security pull request(s) open for more than 30 days`,
       weight: 8,
     });
   }

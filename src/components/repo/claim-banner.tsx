@@ -33,6 +33,9 @@ export function ClaimBanner({
             Skills wanted: {activeRequest.skillsWanted.join(", ")}
           </p>
         ) : null}
+        <Button asChild size="sm" variant="outline" className="self-start">
+          <Link href={`/${owner}/${repo}/claim`}>Update help status</Link>
+        </Button>
       </Card>
     );
   }

@@ -3,8 +3,8 @@ import { Octokit } from "@octokit/rest";
 
 import { parseGitHubRepoUrl } from "@/lib/github/parseUrl";
 import { repositoryExists } from "@/lib/queries/repositories";
-import { ingestRepository, RepositoryModerationError } from "@/lib/ingest";
-import { GitHubNotFoundError, GitHubRateLimitError, withGitHubErrors } from "@/lib/github/client";
+import { ingestRepository, RepositoryModerationError, RepositoryAnalysisBusyError } from "@/lib/ingest";
+import { GitHubNotFoundError, GitHubPrivateRepositoryError, GitHubRateLimitError, withGitHubErrors } from "@/lib/github/client";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { canAddPublicRepository } from "@/lib/github/ownedRepositories";
 
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ owner: repository.owner, repo: repository.name, existed: alreadyIndexed });
   } catch (err) {
-    if (err instanceof RepositoryModerationError) return NextResponse.json({ error: err.message }, { status: 403 });
+    if (err instanceof RepositoryModerationError || err instanceof GitHubPrivateRepositoryError) return NextResponse.json({ error: err.message }, { status: 403 });
+    if (err instanceof RepositoryAnalysisBusyError) return NextResponse.json({ error: err.message }, { status: 429 });
     if (err instanceof GitHubNotFoundError || (err && typeof err === "object" && "status" in err && err.status === 404)) {
       return NextResponse.json({ error: `${parsed.owner}/${parsed.repo} was not found on GitHub.` }, { status: 404 });
     }

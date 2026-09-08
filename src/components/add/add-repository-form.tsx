@@ -108,17 +108,17 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
       {needsOrganizationAccess ? (
         <div className="text-sm text-neutral-500">
           <p role="status">Approve GitHub organization access once to load your memberships automatically. Your organization may also require an admin to approve this connection.</p>
-          <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="mt-1 underline disabled:opacity-50">
+          <Button type="button" onClick={connectOrganizations} disabled={!user || connecting} variant="link" className="mt-1 h-auto p-0">
             {connecting ? "Connecting…" : "Connect organizations"}
-          </button>
+          </Button>
         </div>
       ) : organizationsUnavailable ? (
         <div className="text-sm text-neutral-500">
           <p role="status">GitHub organizations are unavailable right now. Try again shortly. If this continues, check your GitHub connection and organization access.</p>
-          <button type="button" onClick={() => router.refresh()} className="mt-1 underline">Retry organizations</button>
-          <button type="button" onClick={connectOrganizations} disabled={!user || connecting} className="ml-3 underline disabled:opacity-50">
+          <Button type="button" onClick={() => router.refresh()} variant="link" className="mt-1 h-auto p-0">Retry organizations</Button>
+          <Button type="button" onClick={connectOrganizations} disabled={!user || connecting} variant="link" className="ml-3 h-auto p-0">
             {connecting ? "Connecting…" : "Reconnect GitHub"}
-          </button>
+          </Button>
         </div>
       ) : null}
       {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}

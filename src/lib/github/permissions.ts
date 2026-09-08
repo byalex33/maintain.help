@@ -28,7 +28,8 @@ export async function checkClaimPermission(
   userAccessToken: string,
   owner: string,
   repo: string,
-  githubId: string
+  githubId: string,
+  repositoryGithubId: bigint
 ): Promise<ClaimPermissionCheck> {
   const octokit = new Octokit({ auth: userAccessToken });
   try {
@@ -36,6 +37,9 @@ export async function checkClaimPermission(
       owner,
       repo,
     });
+    if (data.private || String(data.id) !== String(repositoryGithubId)) {
+      return { eligible: false, permission: null };
+    }
     // Match the verified, stable identity used when adding a repository.
     const permission = String(data.owner.id) === githubId || data.permissions?.admin
       ? "admin"

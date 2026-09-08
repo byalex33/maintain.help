@@ -29,7 +29,7 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
   const username = session.user.githubLogin;
   const accessToken = username ? await getGitHubAccessToken(session.user.id) : null;
   const permission =
-    username && accessToken ? await checkClaimPermission(accessToken, owner, repo, session.user.githubId) : { eligible: false, permission: null };
+    username && accessToken ? await checkClaimPermission(accessToken, owner, repo, session.user.githubId, repository.githubId) : { eligible: false, permission: null };
 
   const boundAction = submitMaintainerRequest.bind(null, owner, repo);
   const existingRequest = repository.maintainerRequests[0];

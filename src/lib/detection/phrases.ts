@@ -55,6 +55,21 @@ const PHRASE_PATTERNS: PhrasePattern[] = [
 
 const CONTEXT_RADIUS = 100;
 
+function negationPrefix(text: string, index: number): string {
+  // A negation uses at most two word tokens ("no longer" or "aren't"),
+  // followed by at most four words. Do not rescan the whole document.
+  let start = index;
+  let words = 0;
+  let inWord = false;
+  while (start > 0) {
+    const isWord = /\w/.test(text[start - 1]);
+    if (isWord && !inWord && ++words > 6) break;
+    inWord = isWord;
+    start--;
+  }
+  return text.slice(start, index).split(/[.!?;\n]|\bbut\b|\bhowever\b/i).at(-1) ?? "";
+}
+
 function extractContext(text: string, index: number, matchLength: number): string {
   const start = Math.max(0, index - CONTEXT_RADIUS);
   const end = Math.min(text.length, index + matchLength + CONTEXT_RADIUS);
@@ -70,26 +85,24 @@ function extractContext(text: string, index: number, matchLength: number): strin
  */
 export function findPhraseMatches(text: string | null | undefined): PhraseMatch[] {
   if (!text) return [];
-  const seen = new Set<string>();
   const matches: PhraseMatch[] = [];
 
   for (const { category, label, pattern } of PHRASE_PATTERNS) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(text)) !== null) {
-      const key = `${category}:${label}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        matches.push({
-          category,
-          label,
-          matchedText: match[0],
-          context: extractContext(text, match.index, match[0].length),
-          index: match.index,
-        });
-      }
-      // Guard against zero-length matches causing infinite loops.
-      if (match[0].length === 0) pattern.lastIndex++;
+      // ponytail: conservative clause-level negation; use a language parser if broader language support is needed.
+      const prefix = negationPrefix(text, match.index);
+      if (/\b(?:not|never|no(?: longer)?|\w+n['’]t)\b(?:\W+\w+){0,4}\W*$/i.test(prefix)) continue;
+      matches.push({
+        category,
+        label,
+        matchedText: match[0],
+        context: extractContext(text, match.index, match[0].length),
+        index: match.index,
+      });
+      // Each pattern has a unique category/label; only its first accepted match is evidence.
+      break;
     }
   }
 

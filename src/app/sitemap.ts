@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
 
 import { db } from "@/lib/db";
+import { PUBLIC_REPOSITORY } from "@/lib/queries/repositories";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const repositories = await db.repository.findMany({
-    where: { isIndexed: true },
+    where: PUBLIC_REPOSITORY,
     select: { owner: true, name: true, updatedAt: true },
     orderBy: { stars: "desc" },
     take: 5000,

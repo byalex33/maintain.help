@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WANTED_HELP_STATUS_LABEL } from "@/lib/display";
@@ -47,7 +48,7 @@ export function ClaimForm({
         <Label htmlFor="skills" className="mb-1.5">
           Skills wanted
         </Label>
-        <Input id="skills" name="skills" placeholder="TypeScript, documentation, accessibility" defaultValue={defaultSkills?.join(", ")} />
+        <Input id="skills" name="skills" maxLength={1000} placeholder="TypeScript, documentation, accessibility" defaultValue={defaultSkills?.join(", ")} />
         <p className="mt-1 text-xs text-neutral-500">Comma-separated tags.</p>
       </div>
 
@@ -55,13 +56,13 @@ export function ClaimForm({
         <Label htmlFor="message" className="mb-1.5">
           Message to potential contributors
         </Label>
-        <textarea
+        <Textarea
           id="message"
           name="message"
           rows={4}
+          maxLength={2000}
           defaultValue={defaultMessage}
           placeholder="What kind of help would be most useful right now?"
-          className="w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 dark:border-neutral-800 dark:bg-neutral-950 dark:focus-visible:ring-neutral-800"
         />
       </div>
 

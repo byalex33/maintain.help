@@ -5,7 +5,7 @@ import { ArrowUpRight, Bookmark, CalendarDays, Plus, UserRound } from "lucide-re
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { repositoryCardSelect } from "@/lib/queries/repositories";
+import { PUBLIC_REPOSITORY, repositoryCardSelect } from "@/lib/queries/repositories";
 import { RepoCard } from "@/components/repo/repo-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,15 +23,15 @@ export default async function ProfilePage() {
     where: { id: session.user.id },
     select: {
       createdAt: true,
-      _count: { select: { savedRepositories: { where: { repository: { isIndexed: true } } } } },
+      _count: { select: { savedRepositories: { where: { repository: PUBLIC_REPOSITORY } } } },
       savedRepositories: {
-        where: { repository: { isIndexed: true } },
+        where: { repository: PUBLIC_REPOSITORY },
         select: { repository: { select: repositoryCardSelect } },
         orderBy: { createdAt: "desc" },
         take: 3,
       },
       submittedRepositories: {
-        where: { isIndexed: true },
+        where: PUBLIC_REPOSITORY,
         select: repositoryCardSelect,
         orderBy: { createdAt: "desc" },
       },

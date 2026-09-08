@@ -18,7 +18,7 @@ model User {
   id          String  @id @default(cuid())
   clerkId     String? @unique
   githubId    String? @unique
-  githubLogin String? @unique
+  githubLogin String?
   name        String?
   email       String? @unique
   image       String?
@@ -212,6 +212,7 @@ model Repository {
   nextAnalysisAt  DateTime?
   analysisVersion Int                    @default(1)
   analysisError   String?                @db.Text
+  analysisFailureCount Int               @default(0)
   availability    RepositoryAvailability @default(AVAILABLE)
 
   submittedById String?
@@ -236,6 +237,12 @@ model Repository {
   @@index([stars])
   @@index([primaryLanguage])
   @@index([nextAnalysisAt])
+}
+
+model RepositoryAnalysisLease {
+  key       String   @id
+  token     String
+  expiresAt DateTime
 }
 
 /// Historical log of status transitions, kept for trend analysis.

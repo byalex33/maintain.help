@@ -18,6 +18,11 @@ function parseSort(value: string | undefined): ExploreSort {
   return VALID_SORTS.includes(value as ExploreSort) ? (value as ExploreSort) : "recommended";
 }
 
+function parseInteger(value: string | undefined, max: number): number | undefined {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 && number <= max ? number : undefined;
+}
+
 export default async function ExplorePage({
   searchParams,
 }: {
@@ -26,7 +31,7 @@ export default async function ExplorePage({
   const sp = await searchParams;
   const get = (key: string) => (typeof sp[key] === "string" ? (sp[key] as string) : undefined);
 
-  const page = Math.max(1, Number(get("page")) || 1);
+  const page = parseInteger(get("page"), Math.floor(2_147_483_647 / 24)) || 1;
   const sort = parseSort(get("sort"));
 
   const filters = {
@@ -38,7 +43,7 @@ export default async function ExplorePage({
     status: (get("status") as HelpStatus | undefined) && Object.values(HelpStatus).includes(get("status") as HelpStatus)
       ? (get("status") as HelpStatus)
       : undefined,
-    minStars: get("minStars") ? Number(get("minStars")) : undefined,
+    minStars: parseInteger(get("minStars"), 2_147_483_647),
     beginnerFriendly: get("beginnerFriendly") === "1",
     seekingMaintainers: get("seekingMaintainers") === "1",
     activelyAsking: get("activelyAsking") === "1",

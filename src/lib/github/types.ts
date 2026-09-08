@@ -70,9 +70,23 @@ export interface RawRepositoryData {
 
   readmeText: string | null;
   contributingText: string | null;
+  readmeUrl?: string | null;
+  contributingUrl?: string | null;
   hasIssueTemplates: boolean;
 
   issues: RawIssue[];
+  issuesTruncated?: boolean;
+  closedIssuesTruncated?: boolean;
+  issueStatistics?: {
+    openIssues: number;
+    openPullRequests: number;
+    newIssuesLast90d: number;
+    closedIssuesLast90d: number;
+    newPullRequestsLast90d: number;
+    closedPullRequestsLast90d: number;
+    helpWantedIssueCount: number;
+    goodFirstIssueCount: number;
+  };
   releases: RawRelease[];
   commitActivity: RawCommitActivityWeek[];
   contributorStats: RawContributorStat[];

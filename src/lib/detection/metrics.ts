@@ -3,6 +3,7 @@ import { median, daysBetween, hoursBetween } from "./statUtils";
 import { isBotAccount } from "../github/bots";
 
 export interface ComputedMetrics {
+  issuesSampled?: boolean;
   openIssues: number;
   openPullRequests: number;
   newIssuesLast90d: number;
@@ -59,11 +60,11 @@ export function computeMetrics(raw: RawRepositoryData, now: Date = new Date()): 
 
   const { activeLast90, activeLast365, topShare365 } = contributorActivity(raw, now);
 
-  const medianOpenIssueAgeDays = median(openIssueItems.map((i) => daysBetween(i.createdAt, now)));
-  const medianOpenPrAgeDays = median(openPrItems.map((i) => daysBetween(i.createdAt, now)));
+  const medianOpenIssueAgeDays = raw.issuesTruncated ? null : median(openIssueItems.map((i) => daysBetween(i.createdAt, now)));
+  const medianOpenPrAgeDays = raw.issuesTruncated ? null : median(openPrItems.map((i) => daysBetween(i.createdAt, now)));
 
   const recentClosedPrs = closedPrItems.filter((i) => i.closedAt && daysBetween(i.closedAt, now) <= 180);
-  const medianPrCycleTimeHours = median(
+  const medianPrCycleTimeHours = (raw.closedIssuesTruncated ?? raw.issuesTruncated) ? null : median(
     recentClosedPrs.map((i) => hoursBetween(i.createdAt, i.closedAt!))
   );
 
@@ -80,6 +81,7 @@ export function computeMetrics(raw: RawRepositoryData, now: Date = new Date()): 
   ).length;
 
   return {
+    issuesSampled: raw.issuesTruncated ?? false,
     openIssues: openIssueItems.length,
     openPullRequests: openPrItems.length,
     newIssuesLast90d,
@@ -100,6 +102,7 @@ export function computeMetrics(raw: RawRepositoryData, now: Date = new Date()): 
     helpWantedIssueCount,
     goodFirstIssueCount,
     staleDependencyOrSecurityPrCount,
+    ...raw.issueStatistics,
   };
 }
 

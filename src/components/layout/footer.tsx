@@ -19,6 +19,12 @@ export function SiteFooter() {
           <Link href="/add" className="hover:text-neutral-900 dark:hover:text-neutral-200">
             Add a repository
           </Link>
+          <a
+            href="https://github.com/byalex33/maintain.help"
+            className="ml-auto hover:text-neutral-900 dark:hover:text-neutral-200"
+          >
+            We&apos;re also open source
+          </a>
         </div>
       </div>
     </footer>
