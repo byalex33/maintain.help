@@ -1,11 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), repository: vi.fn(), create: vi.fn(), remove: vi.fn(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ transaction: vi.fn(), auth: vi.fn(), repository: vi.fn(), create: vi.fn(), remove: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("@/lib/db", () => ({ db: {
-  repository: { findUnique: mocks.repository },
-  repositoryUpvote: { createMany: mocks.create, deleteMany: mocks.remove },
+  $transaction: mocks.transaction,
 } }));
 
 import { setRepositoryUpvoted } from "@/app/upvotes/actions";
@@ -13,7 +12,11 @@ import { setRepositoryUpvoted } from "@/app/upvotes/actions";
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.auth.mockResolvedValue({ user: { id: "local-user" } });
-  mocks.repository.mockResolvedValue({ owner: "owner", name: "repo" });
+  mocks.repository.mockResolvedValue([{ owner: "owner", name: "repo" }]);
+  mocks.transaction.mockImplementation(async (callback) => callback({
+    $queryRaw: mocks.repository,
+    repositoryUpvote: { createMany: mocks.create, deleteMany: mocks.remove },
+  }));
 });
 
 it("rejects anonymous votes and removals before accessing repositories", async () => {
@@ -35,12 +38,12 @@ it("rejects malformed client arguments", async () => {
 });
 
 it("requires a public available listing", async () => {
-  mocks.repository.mockResolvedValue(null);
+  mocks.repository.mockResolvedValue([]);
   expect((await setRepositoryUpvoted("repo", true)).error).toBeTruthy();
-  expect(mocks.repository).toHaveBeenCalledWith({
-    where: { id: "repo", isIndexed: true, availability: "AVAILABLE" },
-    select: { owner: true, name: true },
-  });
+  const [query, id] = mocks.repository.mock.calls[0];
+  expect(id).toBe("repo");
+  expect(query.join("?")).toContain(`"isIndexed" = true AND "availability" = 'AVAILABLE'`);
+  expect(query.join("?")).toContain("FOR UPDATE");
   expect(mocks.create).not.toHaveBeenCalled();
 });
 
