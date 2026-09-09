@@ -111,6 +111,11 @@ export async function ingestRepository(owner: string, repo: string, options: {
     await persistRepositoryAnalysis(tx, saved.id, raw, analysis, { now });
     if (options.verifiedMaintainer) {
       const { userId, githubLogin } = options.verifiedMaintainer;
+      // A GitHub rename must not leave two verified identities for one local user.
+      await tx.repositoryMaintainer.updateMany({
+        where: { repositoryId: saved.id, userId, githubLogin: { not: githubLogin } },
+        data: { userId: null, verifiedAt: null },
+      });
       await tx.repositoryMaintainer.upsert({
         where: { repositoryId_githubLogin: { repositoryId: saved.id, githubLogin } },
         create: { repositoryId: saved.id, githubLogin, userId, role: "maintainer", verifiedAt: now, isActive: true },

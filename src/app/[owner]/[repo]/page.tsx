@@ -12,7 +12,8 @@ import { ContributorsList } from "@/components/repo/contributors-list";
 import { OpenOpportunities } from "@/components/repo/open-opportunities";
 import { ClaimBanner } from "@/components/repo/claim-banner";
 import { getRepositoryDetail } from "@/lib/queries/repositories";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { checkClaimPermission } from "@/lib/github/permissions";
+import { auth, getGitHubAccessToken, isAdminLogin } from "@/lib/auth";
 import { ModerationControls } from "@/components/repo/moderation-controls";
 import { resolveReport } from "@/app/admin/actions";
 import { db } from "@/lib/db";
@@ -69,10 +70,14 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
   const saved = session?.user ? Boolean(await db.savedRepository.findUnique({
     where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } }, select: { id: true },
   })) : false;
-  const verifiedMaintainer = session?.user ? Boolean(await db.repositoryMaintainer.findFirst({
+  const recordedMaintainer = session?.user ? Boolean(await db.repositoryMaintainer.findFirst({
     where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { not: null } },
     select: { id: true },
   })) : false;
+  const accessToken = recordedMaintainer && session ? await getGitHubAccessToken(session.user.id) : null;
+  const verifiedMaintainer = accessToken && session ? (await checkClaimPermission(
+    accessToken, repository.owner, repository.name, session.user.githubId, repository.githubId,
+  )).eligible : false;
   const latestSnapshot = repository.metricSnapshots[0];
 
   return (

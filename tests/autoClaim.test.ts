@@ -1,11 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { makeRawRepository } from "./fixtures/rawRepository";
 
-const mocks = vi.hoisted(() => ({ find: vi.fn(), save: vi.fn(), claim: vi.fn(), fetch: vi.fn(), persist: vi.fn() }));
+const mocks = vi.hoisted(() => ({ find: vi.fn(), save: vi.fn(), claim: vi.fn(), reconcile: vi.fn(), fetch: vi.fn(), persist: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: {
   repository: { findFirst: mocks.find, updateMany: vi.fn() },
   $transaction: async (work: (tx: unknown) => Promise<unknown>) => work({
-    repository: { upsert: mocks.save }, repositoryMaintainer: { upsert: mocks.claim },
+    repository: { upsert: mocks.save }, repositoryMaintainer: { upsert: mocks.claim, updateMany: mocks.reconcile },
   }),
 } }));
 vi.mock("@/lib/github/fetchRepositoryData", () => ({ fetchRepositoryData: mocks.fetch }));
@@ -54,4 +54,17 @@ it("does not claim moderated repositories", async () => {
 it("does not report a successful add if saving the claim fails", async () => {
   mocks.claim.mockRejectedValue(new Error("database failure"));
   await expect(ingestRepository(raw.owner, raw.name, { verifiedMaintainer })).rejects.toThrow("database failure");
+});
+
+
+it("reconciles renamed claimants using the stable local user ID", async () => {
+  const old = { repositoryId: "repo", userId: "user" as string | null, githubLogin: "old-login", verifiedAt: new Date() as Date | null };
+  mocks.reconcile.mockImplementation(async ({ where, data }) => {
+    expect(where).toEqual({ repositoryId: "repo", userId: "user", githubLogin: { not: "alice" } });
+    Object.assign(old, data);
+  });
+  await ingestRepository(raw.owner, raw.name, { verifiedMaintainer });
+  expect(old).toMatchObject({ userId: null, verifiedAt: null });
+  expect(mocks.reconcile.mock.invocationCallOrder[0]).toBeLessThan(mocks.claim.mock.invocationCallOrder[0]);
+  expect(mocks.claim.mock.lastCall?.[0].update.userId).toBe("user");
 });
