@@ -39,7 +39,7 @@ it("loads only the authenticated user's profile and renders useful empty states"
 it("renders saved and submitted repository links and the full saved count", async () => {
   const repository = {
     id: "repo-1", owner: "maintainers", name: "project", fullName: "maintainers/project",
-    description: "A project that needs help", stars: 10, forks: 1,
+    description: "A project that needs help", stars: 10, forks: 1, _count: { upvotes: 3 },
     status: "ACTIVELY_ASKING", evidence: [], helpCategories: [], primaryLanguage: "TypeScript",
   };
   mocks.user.mockResolvedValue({

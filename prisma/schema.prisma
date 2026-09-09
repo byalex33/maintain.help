@@ -30,6 +30,7 @@ model User {
   sessions              Session[]
   maintainerRequests    MaintainerRequest[]
   repositoryMaintainers RepositoryMaintainer[]
+  upvotes               RepositoryUpvote[]
   savedRepositories     SavedRepository[]
   classificationReviews RepositoryClassificationReview[]
   repositoryFeedback    RepositoryFeedback[]
@@ -227,6 +228,7 @@ model Repository {
   issues                GitHubIssue[]
   maintainers           RepositoryMaintainer[]
   maintainerRequests    MaintainerRequest[]
+  upvotes               RepositoryUpvote[]
   savedBy               SavedRepository[]
   statusHistory         RepositoryStatus[]
   classificationReviews RepositoryClassificationReview[]
@@ -440,4 +442,16 @@ model RepositoryFeedback {
 
   @@index([repositoryId, createdAt])
   @@index([userId, createdAt])
+}
+
+/// One community upvote per account and repository.
+model RepositoryUpvote {
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([userId, repositoryId])
+  @@index([repositoryId])
 }

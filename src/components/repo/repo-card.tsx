@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, GitFork } from "lucide-react";
+import { Star, GitFork, ArrowUp } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,8 @@ export function RepoCard({ repo }: { repo: RepositoryCard }) {
           </ul>
         ) : null}
 
-        <div className="flex items-center gap-3 text-xs text-neutral-400">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
+          <span className="flex items-center gap-1"><ArrowUp aria-hidden="true" className="size-3" />{repo._count.upvotes} {repo._count.upvotes === 1 ? "upvote" : "upvotes"}</span>
           {repo.primaryLanguage ? <span>{repo.primaryLanguage}</span> : null}
           <span className="flex items-center gap-1">
             <GitFork className="size-3" />
