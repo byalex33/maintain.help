@@ -27,7 +27,8 @@ export async function persistRepositoryAnalysis(
   await db.repositoryHelpCategory.deleteMany({ where: { repositoryId } });
   await db.repositoryEvidence.deleteMany({ where: { repositoryId } });
   await db.gitHubIssue.deleteMany({ where: { repositoryId } });
-  await db.repositoryMaintainer.deleteMany({ where: { repositoryId } });
+  await db.repositoryMaintainer.deleteMany({ where: { repositoryId, userId: null, verifiedAt: null } });
+  await db.repositoryMaintainer.updateMany({ where: { repositoryId }, data: { commitsLast365d: 0, isActive: false } });
 
   if (analysis.categories.length > 0) {
     await db.repositoryHelpCategory.createMany({
@@ -69,20 +70,15 @@ export async function persistRepositoryAnalysis(
     });
   }
 
-  if (raw.contributorStats.length > 0) {
-    await db.repositoryMaintainer.createMany({
-      data: raw.contributorStats.filter((c) => !isBotAccount(c.login)).map((c) => {
-        const commitsLast365d = c.weeks
-          .filter((w) => daysBetween(w.weekStart, now) <= 365)
-          .reduce((s, w) => s + w.commits, 0);
-        return {
-          repositoryId,
-          githubLogin: c.login,
-          role: "maintainer",
-          commitsLast365d,
-          isActive: commitsLast365d > 0,
-        };
-      }),
+  for (const c of raw.contributorStats.filter((c) => !isBotAccount(c.login))) {
+    const commitsLast365d = c.weeks
+      .filter((w) => daysBetween(w.weekStart, now) <= 365)
+      .reduce((s, w) => s + w.commits, 0);
+    const stats = { commitsLast365d, isActive: commitsLast365d > 0 };
+    await db.repositoryMaintainer.upsert({
+      where: { repositoryId_githubLogin: { repositoryId, githubLogin: c.login } },
+      create: { repositoryId, githubLogin: c.login, role: "maintainer", ...stats },
+      update: stats,
     });
   }
 

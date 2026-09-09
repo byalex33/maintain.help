@@ -19,7 +19,10 @@ export class RepositoryModerationError extends Error {}
  * maintainer status as the source of truth — this only refreshes the
  * underlying evidence and metrics.
  */
-export async function ingestRepository(owner: string, repo: string, options: { submittedById?: string } = {}) {
+export async function ingestRepository(owner: string, repo: string, options: {
+  submittedById?: string;
+  verifiedMaintainer?: { githubId: number; userId: string; githubLogin: string };
+} = {}) {
   const listing = await db.repository.findFirst({ where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } } });
   if (listing && (!listing.isIndexed || listing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
   let raw: RawRepositoryData;
@@ -35,6 +38,11 @@ export async function ingestRepository(owner: string, repo: string, options: { s
       },
     });
     throw error;
+  }
+
+  // Bind the user's permission check to the same repository that analysis fetched.
+  if (options.verifiedMaintainer && String(raw.githubId) !== String(options.verifiedMaintainer.githubId)) {
+    throw new RepositoryModerationError("The repository changed while it was being added. Please try again.");
   }
 
   const existing = await db.repository.findFirst({
@@ -101,6 +109,14 @@ export async function ingestRepository(owner: string, repo: string, options: { s
       update: { ...values, ...(options.submittedById && !existing?.submittedById ? { submittedById: options.submittedById } : {}) },
     });
     await persistRepositoryAnalysis(tx, saved.id, raw, analysis, { now });
+    if (options.verifiedMaintainer) {
+      const { userId, githubLogin } = options.verifiedMaintainer;
+      await tx.repositoryMaintainer.upsert({
+        where: { repositoryId_githubLogin: { repositoryId: saved.id, githubLogin } },
+        create: { repositoryId: saved.id, githubLogin, userId, role: "maintainer", verifiedAt: now, isActive: true },
+        update: { userId, verifiedAt: now },
+      });
+    }
     return saved;
   }, { timeout: 30_000 });
 

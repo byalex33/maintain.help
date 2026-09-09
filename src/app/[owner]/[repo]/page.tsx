@@ -212,6 +212,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             repo={repository.name}
             activeRequest={activeRequest}
             isSignedIn={Boolean(session?.user)}
+            isVerifiedMaintainer={verifiedMaintainer}
           /> : null}
           <ContributorsList maintainers={repository.maintainers} />
           {repository.isIndexed ? <Card>
