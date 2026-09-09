@@ -38,7 +38,7 @@ export default async function AddRepositoryPage() {
     <div className="mx-auto max-w-xl px-4 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Add a repository</h1>
       <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-        Choose a public repository you own or have admin or maintainer access to, including organization repositories.
+        Choose a public repository you own or have admin or maintainer access to, including organization repositories. Adding it also verifies you as a maintainer, so there is no separate claim step.
       </p>
       <div className="mt-6">
         {error ? (

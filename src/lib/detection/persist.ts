@@ -27,7 +27,8 @@ export async function persistRepositoryAnalysis(
   await db.repositoryHelpCategory.deleteMany({ where: { repositoryId } });
   await db.repositoryEvidence.deleteMany({ where: { repositoryId } });
   await db.gitHubIssue.deleteMany({ where: { repositoryId } });
-  await db.repositoryMaintainer.deleteMany({ where: { repositoryId } });
+  await db.repositoryMaintainer.deleteMany({ where: { repositoryId, userId: null, verifiedAt: null } });
+  await db.repositoryMaintainer.updateMany({ where: { repositoryId }, data: { commitsLast365d: 0, isActive: false } });
 
   if (analysis.categories.length > 0) {
     await db.repositoryHelpCategory.createMany({
@@ -69,21 +70,26 @@ export async function persistRepositoryAnalysis(
     });
   }
 
-  if (raw.contributorStats.length > 0) {
+  const contributors = raw.contributorStats.filter((c) => !isBotAccount(c.login)).map((c) => {
+    const commitsLast365d = c.weeks
+      .filter((w) => daysBetween(w.weekStart, now) <= 365)
+      .reduce((s, w) => s + w.commits, 0);
+    return { githubLogin: c.login, commitsLast365d, isActive: commitsLast365d > 0 };
+  });
+  if (contributors.length > 0) {
     await db.repositoryMaintainer.createMany({
-      data: raw.contributorStats.filter((c) => !isBotAccount(c.login)).map((c) => {
-        const commitsLast365d = c.weeks
-          .filter((w) => daysBetween(w.weekStart, now) <= 365)
-          .reduce((s, w) => s + w.commits, 0);
-        return {
-          repositoryId,
-          githubLogin: c.login,
-          role: "maintainer",
-          commitsLast365d,
-          isActive: commitsLast365d > 0,
-        };
-      }),
+      data: contributors.map((stats) => ({ repositoryId, role: "maintainer", ...stats })),
+      skipDuplicates: true,
     });
+    // Refresh all retained claimants in one round trip without changing identity fields.
+    await db.$executeRaw`
+      UPDATE "RepositoryMaintainer" AS maintainer
+      SET "commitsLast365d" = stats."commitsLast365d", "isActive" = stats."isActive"
+      FROM jsonb_to_recordset(${JSON.stringify(contributors)}::jsonb)
+        AS stats("githubLogin" text, "commitsLast365d" integer, "isActive" boolean)
+      WHERE maintainer."repositoryId" = ${repositoryId}
+        AND maintainer."githubLogin" = stats."githubLogin"
+    `;
   }
 
   if (createMetricSnapshot) {
