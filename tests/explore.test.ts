@@ -6,6 +6,11 @@ vi.mock("@/components/repo/repo-card", () => ({ RepoCard: () => null }));
 vi.mock("@/components/explore/filters", () => ({ ExploreFilters: () => null }));
 import ExplorePage from "@/app/explore/page";
 
+it("accepts the community upvote sort", async () => {
+  await ExplorePage({ searchParams: Promise.resolve({ sort: "upvotes" }) });
+  expect(mocks.explore).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "upvotes" }));
+});
+
 beforeEach(() => {
   mocks.explore.mockReset().mockResolvedValue({ total: 0, items: [], availableLanguages: [], totalPages: 1 });
 });

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Code, GitFork, Sparkles, Star } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Code, GitFork, Sparkles, Star } from "lucide-react";
 import type { RepositoryCard } from "@/lib/queries/repositories";
 import { formatStars, HELP_CATEGORY_LABEL } from "@/lib/display";
 
@@ -21,6 +21,7 @@ export function FeaturedRepository({ repo }: { repo: RepositoryCard }) {
           {repo.helpCategories.length ? <div className="mt-4 flex flex-wrap gap-2">{repo.helpCategories.slice(0, 3).map(({ category }) => <span key={category} className="rounded-md bg-neutral-100 px-2 py-1 text-[11px] text-neutral-600 dark:bg-white/5 dark:text-neutral-400">{HELP_CATEGORY_LABEL[category]}</span>)}</div> : null}
         </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-neutral-500 dark:text-neutral-400">
+          <span className="flex items-center gap-1.5"><ArrowUp aria-hidden="true" className="size-3.5" />{repo._count.upvotes} {repo._count.upvotes === 1 ? "upvote" : "upvotes"}</span>
           {repo.primaryLanguage ? <span className="flex items-center gap-2"><span aria-hidden="true" className="size-2 rounded-full bg-violet-400" />{repo.primaryLanguage}</span> : null}
           <span className="flex items-center gap-1.5"><Star aria-hidden="true" className="size-3.5" />{formatStars(repo.stars)} stars</span>
           <span className="flex items-center gap-1.5"><GitFork aria-hidden="true" className="size-3.5" />{formatStars(repo.forks)} forks</span>

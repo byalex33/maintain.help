@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Browse open-source projects looking for contributors, reviewers, maintainers, and more.",
 };
 
-const VALID_SORTS: ExploreSort[] = ["recommended", "stars", "recent", "most-help-needed", "newest"];
+const VALID_SORTS: ExploreSort[] = ["recommended", "upvotes", "stars", "recent", "most-help-needed", "newest"];
 
 function parseSort(value: string | undefined): ExploreSort {
   return VALID_SORTS.includes(value as ExploreSort) ? (value as ExploreSort) : "recommended";

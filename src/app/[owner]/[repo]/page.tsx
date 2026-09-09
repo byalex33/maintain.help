@@ -5,6 +5,7 @@ import { Star, GitFork, ExternalLink, Circle, Bookmark, ShieldCheck, Flag, Chevr
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { UpvoteButton } from "@/components/repo/upvote-button";
 import { StatusBadge, ConfidenceBadge } from "@/components/repo/status-badge";
 import { EvidenceCard } from "@/components/repo/evidence-card";
 import { ActivityCharts } from "@/components/repo/activity-charts";
@@ -68,6 +69,10 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
     orderBy: { createdAt: "desc" },
   }) : [];
 
+  const upvoted = session?.user ? Boolean(await db.repositoryUpvote.findUnique({
+    where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } },
+    select: { userId: true },
+  })) : false;
   const activeRequest = repository.maintainerRequests[0] ?? null;
   const saved = session?.user ? Boolean(await db.savedRepository.findUnique({
     where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } }, select: { id: true },
@@ -207,6 +212,13 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
               </div>
             </CardContent>
           </Card> : null}
+          {repository.isIndexed && repository.availability === "AVAILABLE" ? <UpvoteButton
+            repositoryId={repository.id}
+            count={repository._count.upvotes}
+            upvoted={upvoted}
+            signedIn={Boolean(session?.user)}
+            repositoryPath={`/${repository.owner}/${repository.name}`}
+          /> : null}
           {session?.user && repository.isIndexed ? <form action={setRepositorySaved.bind(null, repository.id, !saved)}>
             <Button type="submit" variant="outline" className="w-full"><Bookmark className={saved ? "fill-current" : ""} />{saved ? "Unsave repository" : "Save repository"}</Button>
           </form> : null}

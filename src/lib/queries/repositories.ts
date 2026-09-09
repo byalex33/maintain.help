@@ -9,6 +9,7 @@ const ACCEPTING_HELP = { maintainerRequests: { none: { isActive: true, status: "
 const CONFIDENCE_ORDER: Record<string, number> = { VERIFIED: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
 export const repositoryCardSelect = {
+  _count: { select: { upvotes: true } },
   id: true,
   owner: true,
   name: true,
@@ -98,7 +99,7 @@ export interface ExploreFilters {
   query?: string;
 }
 
-export type ExploreSort = "recommended" | "stars" | "recent" | "most-help-needed" | "newest";
+export type ExploreSort = "upvotes" | "recommended" | "stars" | "recent" | "most-help-needed" | "newest";
 
 export interface ExploreParams {
   filters: ExploreFilters;
@@ -133,6 +134,8 @@ function buildExploreWhere(filters: ExploreFilters): Prisma.RepositoryWhereInput
 
 function sortToOrderBy(sort: ExploreSort): Prisma.RepositoryOrderByWithRelationInput[] {
   switch (sort) {
+    case "upvotes":
+      return [{ upvotes: { _count: "desc" } }, { stars: "desc" }, { id: "asc" }];
     case "stars":
       return [{ stars: "desc" }];
     case "recent":
@@ -181,6 +184,7 @@ export async function getRepositoryDetail(owner: string, repo: string, includeRe
   return db.repository.findUnique({
     where: { fullName: `${owner}/${repo}`, ...(includeRemoved ? {} : PUBLIC_REPOSITORY) },
     include: {
+      _count: { select: { upvotes: true } },
       helpCategories: true,
       evidence: { orderBy: [{ confidence: "asc" }, { discoveredAt: "desc" }] },
       maintainers: { orderBy: { commitsLast365d: "desc" }, take: 10 },
