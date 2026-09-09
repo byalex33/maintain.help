@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Star, GitFork, ExternalLink, Circle, Bookmark, ShieldCheck, Flag } from "lucide-react";
+import { Star, GitFork, ExternalLink, Circle, Bookmark, ShieldCheck, Flag, ChevronDown } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -60,7 +60,8 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
   const session = await auth();
   const isAdmin = isAdminLogin(session?.user.githubLogin);
   const repository = await loadRepo(params, isAdmin);
-  const reportSent = (await searchParams).report === "sent";
+  const reportState = (await searchParams).report;
+  const reportSent = reportState === "sent";
   const reports = isAdmin ? await db.repositoryFeedback.findMany({
     where: { repositoryId: repository.id, resolvedAt: null },
     include: { user: { select: { githubLogin: true, name: true } } },
@@ -216,9 +217,13 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             isSignedIn={Boolean(session?.user)}
           /> : null}
           <ContributorsList maintainers={repository.maintainers} />
-          {repository.isIndexed ? <Card>
-            <CardHeader><CardTitle>Is this status inaccurate?</CardTitle></CardHeader>
+          {repository.isIndexed ? <details className="group rounded-lg border border-border bg-card text-card-foreground">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+              Give feedback
+              <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+            </summary>
             <CardContent>
+              <h2 className="mb-3 text-sm font-semibold">Is this status inaccurate?</h2>
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
                 {verifiedMaintainer ? <p className="text-xs text-emerald-600">Verified maintainer feedback receives higher trust.</p> : <p className="text-xs text-neutral-500">Feedback is reviewed and does not automatically change the status.</p>}
                 <Select name="type" required defaultValue="INACCURATE">
@@ -236,9 +241,12 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
                 <Button type="submit" size="sm">Send feedback</Button>
               </form> : <Button asChild variant="outline" size="sm"><Link href="/sign-in">Sign in to send feedback</Link></Button>}
             </CardContent>
-          </Card> : null}
-          {repository.isIndexed ? <Card id="report" className="scroll-mt-20">
-            <CardHeader><CardTitle><span className="flex items-center gap-2"><Flag aria-hidden="true" className="size-4" />Report repository</span></CardTitle></CardHeader>
+          </details> : null}
+          {repository.isIndexed ? <details id="report" open={reportSent || reportState === "open"} className="group scroll-mt-20 rounded-lg border border-border bg-card text-card-foreground">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-2"><Flag aria-hidden="true" className="size-4" />Report repository</span>
+              <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+            </summary>
             <CardContent>
               {reportSent ? <p role="status" className="mb-3 text-sm text-green-700 dark:text-green-400">Report sent. An admin can now review it.</p> : null}
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
@@ -248,9 +256,9 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
                 </label>
                 <p className="text-xs text-neutral-500">Your report and account name are visible only to admins.</p>
                 <Button type="submit" variant="outline" size="sm">Send report</Button>
-              </form> : <Button asChild variant="outline" size="sm"><Link href={`/sign-in?callbackUrl=${encodeURIComponent(`/${repository.owner}/${repository.name}#report`)}`}>Sign in to report</Link></Button>}
+              </form> : <Button asChild variant="outline" size="sm"><Link href={`/sign-in?callbackUrl=${encodeURIComponent(`/${repository.owner}/${repository.name}?report=open#report`)}`}>Sign in to report</Link></Button>}
             </CardContent>
-          </Card> : null}
+          </details> : null}
           {repository.topics.length > 0 ? (
             <Card>
               <CardHeader>
