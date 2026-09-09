@@ -19,7 +19,7 @@ export function ClaimBanner({
 }) {
   if (activeRequest) {
     return (
-      <Card className="flex flex-col gap-2 border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+      <Card className="rounded-2xl flex flex-col gap-2 border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
         <div className="flex items-center gap-2 text-sm font-medium text-emerald-800 dark:text-emerald-400">
           <BadgeCheck className="size-4" />
           Verified by repository maintainer
@@ -41,7 +41,7 @@ export function ClaimBanner({
   }
 
   return (
-    <Card className="flex flex-col items-start gap-2 p-4">
+    <Card className="rounded-2xl flex flex-col items-start gap-2 p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
         <ShieldQuestion className="size-4 text-neutral-400" />
         Are you a maintainer of this repository?

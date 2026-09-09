@@ -10,7 +10,7 @@ export function ContributorsList({ maintainers }: { maintainers: RepositoryMaint
   const topShare = totalCommits > 0 ? Math.round((top.commitsLast365d / totalCommits) * 100) : 0;
 
   return (
-    <Card>
+    <Card className="rounded-2xl">
       <CardHeader>
         <CardTitle>Contributors</CardTitle>
       </CardHeader>
@@ -28,11 +28,11 @@ export function ContributorsList({ maintainers }: { maintainers: RepositoryMaint
                 href={`https://github.com/${m.githubLogin}`}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="font-medium hover:underline"
+                className="min-w-0 break-all font-medium hover:underline"
               >
                 {m.githubLogin}
               </a>
-              <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">
+              <div className="flex shrink-0 flex-wrap justify-end gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                 <span>{m.commitsLast365d} commits / 12mo</span>
                 {!m.isActive ? <Badge variant="outline">Inactive</Badge> : null}
               </div>
