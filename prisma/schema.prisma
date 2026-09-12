@@ -15,6 +15,8 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
+  receivedLikeNotifications RepositoryLikeNotification[] @relation("LikeRecipient")
+  sentLikeNotifications     RepositoryLikeNotification[] @relation("LikeActor")
   id          String  @id @default(cuid())
   clerkId     String? @unique
   githubId    String? @unique
@@ -164,6 +166,7 @@ enum RepositoryFeedbackType {
 // ---------------------------------------------------------------------------
 
 model Repository {
+  likeNotifications RepositoryLikeNotification[]
   id       String @id @default(cuid())
   githubId BigInt @unique
 
@@ -453,5 +456,23 @@ model RepositoryUpvote {
   createdAt    DateTime   @default(now())
 
   @@id([userId, repositoryId])
+  @@index([repositoryId])
+}
+
+/// One historical like notification per actor, repository and recipient, including across unlike/re-like.
+model RepositoryLikeNotification {
+  id           String     @id @default(cuid())
+  recipientId  String
+  recipient    User       @relation("LikeRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actorId      String
+  actor        User       @relation("LikeActor", fields: [actorId], references: [id], onDelete: Cascade)
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  readAt       DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@unique([recipientId, actorId, repositoryId])
+  @@index([recipientId, createdAt])
+  @@index([actorId])
   @@index([repositoryId])
 }

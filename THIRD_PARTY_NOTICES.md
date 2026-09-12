@@ -5,6 +5,12 @@
 `src/components/repo/upvote-button.tsx` adapts the Like Button heart pill and
 particle burst, using existing votes with pending/error states and reduced-motion support.
 
+`src/components/layout/notifications.tsx` adapts Notification and Deploy Notification
+for repo-like alerts, using our theme and native disclosure behavior.
+
+- https://opensourceui.in/components/notification
+- https://opensourceui.in/components/deploy-notification
+
 Source: https://github.com/bidyut10/opensourceui/blob/main/components/buttons/like-button.tsx
 
 MIT License

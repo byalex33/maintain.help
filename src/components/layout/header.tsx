@@ -2,11 +2,14 @@ import Link from "next/link";
 import { Compass, Plus, Search } from "lucide-react";
 
 import { AccountMenu } from "@/components/layout/account-menu";
+import { Notifications } from "@/components/layout/notifications";
+import { getNotifications } from "@/lib/queries/notifications";
 import { auth, isAdminLogin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 export async function SiteHeader() {
   const session = await auth();
+  const notifications = session?.user ? await getNotifications(session.user.id) : [];
 
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/90 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90">
@@ -30,6 +33,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {session?.user ? <Notifications key={session.user.id} items={notifications} /> : null}
           {session?.user ? (
             <Button asChild variant="outline" size="icon">
               <Link href="/add" aria-label="Add a repository" title="Add a repository">
