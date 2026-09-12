@@ -1,19 +1,29 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+vi.stubGlobal("React", React);
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), appAuth: vi.fn(), has: vi.fn(), transaction: vi.fn(),
   repository: vi.fn(), requests: vi.fn(), maintainers: vi.fn(), user: vi.fn(), deleteUser: vi.fn(),
+  updateUser: vi.fn(), revalidatePath: vi.fn(),
 }));
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mocks.auth,
-  clerkClient: async () => ({ users: { deleteUser: mocks.deleteUser } }),
+  clerkClient: async () => ({ users: { deleteUser: mocks.deleteUser, updateUser: mocks.updateUser } }),
   reverificationError: (level: string) => ({ reverification: level }),
 }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.appAuth }));
 vi.mock("@/lib/db", () => ({ db: { $transaction: mocks.transaction } }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(url); } }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("@clerk/nextjs", () => ({
+  useReverification: (action: unknown) => action,
+  SignOutButton: ({ children }: { children: React.ReactNode }) => children,
+}));
 
-import { deleteAccount } from "@/app/settings/actions";
+import { deleteAccount, updateProfile } from "@/app/settings/actions";
 import SettingsPage from "@/app/settings/page";
 
 beforeEach(() => {
@@ -71,4 +81,37 @@ it("reports partial deletion explicitly and allows retrying the provider deletio
   expect(await deleteAccount("DELETE")).toHaveProperty("error", expect.stringContaining("data was deleted"));
   expect(await deleteAccount("DELETE")).toEqual({ success: true });
   expect(mocks.deleteUser).toHaveBeenCalledTimes(2);
+});
+
+it("validates profile edits and updates only the authenticated user's name", async () => {
+  const form = new FormData();
+  form.set("name", "  Ada Lovelace  ");
+  mocks.auth.mockResolvedValueOnce({ userId: null });
+  expect(await updateProfile({}, form)).toHaveProperty("error");
+  expect(mocks.updateUser).not.toHaveBeenCalled();
+  for (const value of ["", "   ", "a".repeat(101)]) {
+    form.set("name", value);
+    expect(await updateProfile({}, form)).toHaveProperty("error");
+  }
+  expect(mocks.updateUser).not.toHaveBeenCalled();
+  form.set("name", "  Ada Lovelace  ");
+  expect(await updateProfile({}, form)).toEqual({ success: "Profile saved." });
+  expect(mocks.updateUser).toHaveBeenCalledExactlyOnceWith("clerk-current-user", { firstName: "Ada Lovelace", lastName: "" });
+  expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+  mocks.updateUser.mockRejectedValueOnce(new Error("Provider unavailable"));
+  expect(await updateProfile({}, form)).toHaveProperty("error");
+  expect(mocks.revalidatePath).toHaveBeenCalledTimes(1);
+});
+
+it("renders native settings, a profile editor and protected account controls", async () => {
+  mocks.appAuth.mockResolvedValue({ user: { name: "Ada Lovelace", githubLogin: "ada", image: null } });
+  const html = renderToStaticMarkup(await SettingsPage());
+  expect(html).toContain('aria-label="Settings sections"');
+  expect(html).toContain('name="name"');
+  expect(html).toContain('value="Ada Lovelace"');
+  expect(html).toContain("Save changes");
+  expect(html).toContain("Connected account");
+  expect(html).toContain("https://github.com/settings/security");
+  expect(html).toContain('pattern="DELETE"');
+  expect(html).toContain("<details");
 });

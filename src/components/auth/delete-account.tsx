@@ -33,19 +33,22 @@ export function DeleteAccount() {
   }
 
   return (
-    <section aria-labelledby="delete-account-heading" className="rounded-lg border border-red-200 p-6 dark:border-red-900">
-      <h2 id="delete-account-heading" className="text-lg font-semibold">Delete Account</h2>
+    <section aria-labelledby="delete-account-heading" className="rounded-xl border border-destructive/25 p-5 sm:p-7">
+      <h2 id="delete-account-heading" className="text-lg font-semibold">Delete account</h2>
       <p id="delete-account-description" className="mt-2 max-w-2xl text-sm text-neutral-600 dark:text-neutral-400">
         Permanently delete your account, saved repositories, feedback, and maintainer requests. Public repository listings and GitHub data remain. This cannot be undone.
       </p>
-      <form onSubmit={submit} className="mt-5 max-w-sm space-y-3">
-        <label htmlFor="delete-confirmation" className="block text-sm font-medium">Type DELETE to confirm</label>
-        <Input id="delete-confirmation" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" spellCheck={false} required pattern="DELETE" disabled={pending} aria-describedby="delete-account-description" />
-        {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-        <Button type="submit" variant="destructive" disabled={pending || confirmation !== "DELETE"}>
-          {pending ? "Deleting account…" : "Delete Account"}
-        </Button>
-      </form>
+      <details className="mt-5">
+        <summary className="w-fit cursor-pointer rounded text-sm font-medium text-destructive underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">I want to delete my account</summary>
+        <form onSubmit={submit} className="mt-5 max-w-sm space-y-3">
+          <label htmlFor="delete-confirmation" className="block text-sm font-medium">Type DELETE to confirm</label>
+          <Input id="delete-confirmation" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" spellCheck={false} required pattern="DELETE" disabled={pending} aria-describedby="delete-account-description" />
+          {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          <Button type="submit" variant="destructive" disabled={pending || confirmation !== "DELETE"}>
+            {pending ? "Deleting account…" : "Delete Account"}
+          </Button>
+        </form>
+      </details>
     </section>
   );
 }
