@@ -472,7 +472,7 @@ model RepositoryLikeNotification {
   createdAt    DateTime   @default(now())
 
   @@unique([recipientId, actorId, repositoryId])
-  @@index([recipientId, createdAt])
+  @@index([recipientId, readAt(sort: Asc), createdAt(sort: Desc), id(sort: Desc)])
   @@index([actorId])
   @@index([repositoryId])
 }
