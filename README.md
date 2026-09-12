@@ -148,6 +148,8 @@ tests/                Authentication, detection, GitHub, and validation tests
 
 ## Operations
 
+Vercel omits sensitive secret values from environment exports. Check the project environment metadata and authenticated runtime behavior before treating an empty exported value as a missing secret.
+
 <details>
 <summary><strong>Authentication &amp; repository claims</strong></summary>
 
