@@ -40,13 +40,16 @@ async function cachedRepository(listing: Repository, submittedById?: string) {
  * maintainer status as the source of truth; this only refreshes the
  * underlying evidence and metrics.
  */
-export async function ingestRepository(owner: string, repo: string, options: { submittedById?: string } = {}) {
+export async function ingestRepository(owner: string, repo: string, options: {
+  submittedById?: string;
+  verifiedMaintainer?: { githubId: number; userId: string; githubLogin: string };
+} = {}) {
   const listing = await db.repository.findFirst({ where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } } });
   if (listing && (!listing.isIndexed || listing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
   if (listing?.analysisError && listing.nextAnalysisAt && listing.nextAnalysisAt > new Date()) {
     throw new RepositoryAnalysisBusyError("This repository is waiting for its next analysis retry.");
   }
-  if (listing?.lastAnalyzedAt && !listing.isFixture && listing.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(listing, options.submittedById);
+  if (!options.verifiedMaintainer && listing?.lastAnalyzedAt && !listing.isFixture && listing.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(listing, options.submittedById);
 
   const key = `${owner}/${repo}`.toLowerCase();
   const token = randomUUID();
@@ -64,7 +67,7 @@ export async function ingestRepository(owner: string, repo: string, options: { s
     // Another worker may have completed between our initial read and lease acquisition.
     const latest = await db.repository.findFirst({ where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } } });
     if (latest && (!latest.isIndexed || latest.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
-    if (latest?.lastAnalyzedAt && !latest.isFixture && latest.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(latest, options.submittedById);
+    if (!options.verifiedMaintainer && latest?.lastAnalyzedAt && !latest.isFixture && latest.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(latest, options.submittedById);
     const raw = await fetchRepositoryData(owner, repo);
     return await saveRepository(raw, options, key, token);
   } catch (error) {
@@ -96,7 +99,11 @@ export async function ingestRepository(owner: string, repo: string, options: { s
   }
 }
 
-async function saveRepository(raw: RawRepositoryData, options: { submittedById?: string }, key: string, token: string) {
+async function saveRepository(raw: RawRepositoryData, options: NonNullable<Parameters<typeof ingestRepository>[2]>, key: string, token: string) {
+  // Bind the permission check to the repository fetched, even for recently analysed listings.
+  if (options.verifiedMaintainer && String(raw.githubId) !== String(options.verifiedMaintainer.githubId)) {
+    throw new RepositoryModerationError("The repository changed while it was being added. Please try again.");
+  }
   return db.$transaction(async (tx) => {
     const lease = await tx.$queryRaw<{ key: string }[]>`
       SELECT key FROM "RepositoryAnalysisLease" WHERE key = ${key} AND token = ${token} AND "expiresAt" > NOW() FOR UPDATE
@@ -171,6 +178,19 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
       update: { ...values, ...(options.submittedById && !existing?.submittedById ? { submittedById: options.submittedById } : {}) },
     });
     await persistRepositoryAnalysis(tx, saved.id, raw, analysis, { now });
+    if (options.verifiedMaintainer) {
+      const { userId, githubLogin } = options.verifiedMaintainer;
+      // A GitHub rename must not leave two verified identities for one local user.
+      await tx.repositoryMaintainer.updateMany({
+        where: { repositoryId: saved.id, userId, githubLogin: { not: githubLogin } },
+        data: { userId: null, verifiedAt: null },
+      });
+      await tx.repositoryMaintainer.upsert({
+        where: { repositoryId_githubLogin: { repositoryId: saved.id, githubLogin } },
+        create: { repositoryId: saved.id, githubLogin, userId, role: "maintainer", verifiedAt: now, isActive: true },
+        update: { userId, verifiedAt: now },
+      });
+    }
     return saved;
   }, { timeout: 30_000 });
 }

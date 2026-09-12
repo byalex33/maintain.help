@@ -2,6 +2,7 @@ import { PageIntro } from "@/components/layout/page-intro";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { db } from "@/lib/db";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { checkClaimPermission } from "@/lib/github/permissions";
 import { getRepositoryDetail } from "@/lib/queries/repositories";
@@ -32,12 +33,17 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
   const permission =
     username && accessToken ? await checkClaimPermission(accessToken, owner, repo, session.user.githubId, repository.githubId) : { eligible: false, permission: null };
 
+  const alreadyClaimed = permission.eligible && Boolean(await db.repositoryMaintainer.findFirst({
+    where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { not: null } },
+    select: { id: true },
+  }));
+
   const boundAction = submitMaintainerRequest.bind(null, owner, repo);
   const existingRequest = repository.maintainerRequests[0];
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <PageIntro eyebrow="Your project, your voice" title={`Claim ${repository.fullName}`} description="Verify your GitHub access and tell contributors what your project needs. Your input takes priority over our inferred status." />
+      <PageIntro eyebrow="Your project, your voice" title={`${alreadyClaimed ? "Manage help status for" : "Claim"} ${repository.fullName}`} description="Verify your GitHub access and tell contributors what your project needs. Your input takes priority over our inferred status." />
 
       {!permission.eligible ? (
         <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">

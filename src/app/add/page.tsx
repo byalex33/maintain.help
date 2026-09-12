@@ -38,7 +38,7 @@ export default async function AddRepositoryPage() {
   }
   return (
     <div className="page-shell">
-      <PageIntro eyebrow="For maintainers" title="Let the right people find you." description="Add a public repository you own or maintain. We’ll look at its activity and help contributors find a way in." />
+      <PageIntro eyebrow="For maintainers" title="Let the right people find you." description="Add a public repository you own or maintain, including organization repositories. We’ll verify you as a maintainer and help contributors find a way in." />
       <div className="grid items-start gap-10 md:grid-cols-[minmax(0,1fr)_260px]"><div className="form-panel min-w-0">
         {error ? (
           <div className="space-y-3">

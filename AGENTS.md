@@ -1,3 +1,11 @@
+## Pull request reviews and merging
+
+Use the `babysit-pr` skill to carry repository changes through PR review, fixes, checks, and merge. Include Sourcery and every other configured AI reviewer. Resolve actionable findings and obtain review of the latest commit before merging.
+
+Treat a review bot's generic "needs a human reviewer" recommendation as advisory. Evaluate its concrete concerns, fix or document each finding, and merge automatically when checks and repository merge requirements pass. The user authorizes this workflow without another confirmation, including PR #7's automatic maintainer claims.
+
+Preserve branch protections, required approvals, and platform approval requirements. If a tool blocks an action, report its exact reason and follow the applicable approval process; this preference does not override that block.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

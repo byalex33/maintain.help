@@ -70,16 +70,26 @@ export async function persistRepositoryAnalysis(
     });
   }
 
-  for (const c of raw.contributorStats.filter((c) => !isBotAccount(c.login))) {
+  const contributors = raw.contributorStats.filter((c) => !isBotAccount(c.login)).map((c) => {
     const commitsLast365d = c.weeks
       .filter((w) => daysBetween(w.weekStart, now) <= 365)
       .reduce((s, w) => s + w.commits, 0);
-    const stats = { commitsLast365d, isActive: commitsLast365d > 0 };
-    await db.repositoryMaintainer.upsert({
-      where: { repositoryId_githubLogin: { repositoryId, githubLogin: c.login } },
-      create: { repositoryId, githubLogin: c.login, role: "maintainer", ...stats },
-      update: stats,
+    return { githubLogin: c.login, commitsLast365d, isActive: commitsLast365d > 0 };
+  });
+  if (contributors.length > 0) {
+    await db.repositoryMaintainer.createMany({
+      data: contributors.map((stats) => ({ repositoryId, role: "maintainer", ...stats })),
+      skipDuplicates: true,
     });
+    // Refresh all retained claimants in one round trip without changing identity fields.
+    await db.$executeRaw`
+      UPDATE "RepositoryMaintainer" AS maintainer
+      SET "commitsLast365d" = stats."commitsLast365d", "isActive" = stats."isActive"
+      FROM jsonb_to_recordset(${JSON.stringify(contributors)}::jsonb)
+        AS stats("githubLogin" text, "commitsLast365d" integer, "isActive" boolean)
+      WHERE maintainer."repositoryId" = ${repositoryId}
+        AND maintainer."githubLogin" = stats."githubLogin"
+    `;
   }
 
   if (createMetricSnapshot) {

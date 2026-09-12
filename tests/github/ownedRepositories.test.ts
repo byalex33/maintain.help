@@ -16,7 +16,7 @@ import { POST } from "@/app/api/repositories/analyze/route";
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.auth.mockResolvedValue({ user: { id: "local-id", githubId: "42" } });
+  mocks.auth.mockResolvedValue({ user: { id: "local-id", githubId: "42", githubLogin: "alice" } });
   mocks.token.mockResolvedValue("user-token");
   mocks.ingest.mockResolvedValue({ owner: "alice", name: "project" });
 });
@@ -73,13 +73,13 @@ it("rejects forged selections of private or other users' repositories", async ()
 });
 
 it.each(["admin", "maintain"])("adds public organization repos with GitHub-confirmed %s access", async (permission) => {
-  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 99 }, permissions: { [permission]: true } } });
+  mocks.get.mockResolvedValue({ data: { id: 123, private: false, owner: { id: 99 }, permissions: { [permission]: true } } });
   expect((await submit()).status).toBe(200);
-  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id" });
+  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id", verifiedMaintainer: { githubId: 123, userId: "local-id", githubLogin: "alice" } });
 });
 
 it("adds an owned public repository using the authenticated local identity", async () => {
-  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
+  mocks.get.mockResolvedValue({ data: { id: 123, private: false, owner: { id: 42 } } });
   expect((await submit()).status).toBe(200);
-  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id" });
+  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id", verifiedMaintainer: { githubId: 123, userId: "local-id", githubLogin: "alice" } });
 });
