@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@keyframes like-particle {
+  from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  to { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.2); opacity: 0; }
+}
+.like-particle { animation: like-particle 500ms ease-out forwards; }
+
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;

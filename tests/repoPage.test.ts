@@ -36,7 +36,7 @@ it("renders the repo overview, evidence and saved control, with honest empty sta
   expect(html).toContain('id="evidence"');
   expect(html).toContain("Maintainer seeking a successor");
   expect(html).toContain("Not available");
-  expect(html).toContain("Upvote repository, 3 upvotes");
+  expect(html).toContain("Like brightloop/queuelight, 3 likes");
   expect(html).toContain("Send feedback");
   expect(html).toContain("Send report");
   mocks.repository.mockResolvedValue({ ...repository, metricSnapshots: [], evidence: [], helpCategories: [] });
