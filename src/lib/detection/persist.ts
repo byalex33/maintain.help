@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { db as Database } from "@/lib/db";
 import type { RawRepositoryData } from "../github/types";
 import type { AnalysisResult } from "./analyze";
@@ -70,16 +71,23 @@ export async function persistRepositoryAnalysis(
     });
   }
 
-  for (const c of raw.contributorStats.filter((c) => !isBotAccount(c.login))) {
-    const commitsLast365d = c.weeks
+  const contributors = raw.contributorStats.filter((c) => !isBotAccount(c.login)).map((c) => ({
+    id: randomUUID(),
+    githubLogin: c.login,
+    commitsLast365d: c.weeks
       .filter((w) => daysBetween(w.weekStart, now) <= 365)
-      .reduce((s, w) => s + w.commits, 0);
-    const stats = { commitsLast365d, isActive: commitsLast365d > 0 };
-    await db.repositoryMaintainer.upsert({
-      where: { repositoryId_githubLogin: { repositoryId, githubLogin: c.login } },
-      create: { repositoryId, githubLogin: c.login, role: "maintainer", ...stats },
-      update: stats,
-    });
+      .reduce((sum, w) => sum + w.commits, 0),
+  }));
+  if (contributors.length) {
+    // One round trip for the entire sample; conflicts only refresh activity, never claims.
+    await db.$executeRaw`
+      INSERT INTO "RepositoryMaintainer" (id, "repositoryId", "githubLogin", "commitsLast365d", "isActive")
+      SELECT id, ${repositoryId}, "githubLogin", "commitsLast365d", "commitsLast365d" > 0
+      FROM jsonb_to_recordset(${JSON.stringify(contributors)}::jsonb)
+        AS contributors(id text, "githubLogin" text, "commitsLast365d" integer)
+      ON CONFLICT ("repositoryId", "githubLogin") DO UPDATE SET
+        "commitsLast365d" = EXCLUDED."commitsLast365d", "isActive" = EXCLUDED."isActive"
+    `;
   }
 
   if (createMetricSnapshot) {
