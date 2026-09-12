@@ -12,6 +12,8 @@ const buttonVariants = cva(
         default: "bg-neutral-900 text-neutral-50 hover:bg-neutral-700 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200",
         destructive: "bg-red-600 text-white hover:bg-red-700",
         outline: "border border-neutral-200 bg-white hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900",
+        // Opensource UI Depth Outline adaptation; see THIRD_PARTY_NOTICES.md.
+        depth: "border border-neutral-200 dark:border-neutral-800 bg-background text-foreground shadow-[0_1px_1px_rgba(0,0,0,0.04),0_4px_10px_rgba(0,0,0,0.05),0_12px_28px_rgba(0,0,0,0.05)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-neutral-50 dark:hover:bg-neutral-900 active:translate-y-px active:shadow-inner motion-reduce:transition-none motion-reduce:active:translate-y-0",
         secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-50 dark:hover:bg-neutral-700",
         ghost: "hover:bg-neutral-100 dark:hover:bg-neutral-800",
         link: "text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-50",

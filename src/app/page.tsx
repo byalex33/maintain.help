@@ -20,10 +20,28 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="border-b border-neutral-200 bg-neutral-50/60 dark:border-neutral-800 dark:bg-neutral-950">
+      {/* OpenSourceUI Dot Grid and Annotated Text adaptations; see THIRD_PARTY_NOTICES.md. */}
+      <section className="relative isolate overflow-hidden border-b border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 [background-image:radial-gradient(circle,#e8e8e8_1px,transparent_1px)] [background-size:12px_12px] dark:[background-image:radial-gradient(circle,#262626_1px,transparent_1px)]"
+        />
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:py-24">
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Find open source that needs you.
+            Find open source that{" "}
+            <span className="relative inline-block whitespace-nowrap">
+              needs you.
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                className="pointer-events-none absolute -bottom-[0.32em] -left-[1%] h-[0.5em] w-[102%] text-cyan-600 dark:text-cyan-400"
+                viewBox="0 0 140 10"
+                fill="none"
+                preserveAspectRatio="none"
+              >
+                <path d="M3,6 C40,3 100,3 137,5" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+              </svg>
+            </span>
           </h1>
           <p className="max-w-xl text-lg text-neutral-600 dark:text-neutral-400">
             Discover projects looking for contributors, reviewers, maintainers, documentation help, and more.
@@ -32,7 +50,7 @@ export default async function HomePage() {
           <HeroSearch />
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button asChild variant="outline">
+            <Button asChild variant="depth">
               <Link href="/explore">Explore projects</Link>
             </Button>
             <Button asChild variant="ghost">
