@@ -50,7 +50,7 @@ export function ClaimBanner({
         Claim it to set the current help status yourself — verified input always overrides our inference.
       </p>
       <Button asChild size="sm" variant="outline">
-        <Link href={isSignedIn ? `/${owner}/${repo}/claim` : "/sign-in"}>Claim this repository</Link>
+        <Link href={isSignedIn ? `/${owner}/${repo}/claim` : `/sign-in?callbackUrl=${encodeURIComponent(`/${owner}/${repo}/claim`)}`}>Claim this repository</Link>
       </Button>
     </Card>
   );

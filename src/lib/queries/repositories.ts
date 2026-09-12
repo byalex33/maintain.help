@@ -2,9 +2,10 @@ import "server-only";
 import { db } from "@/lib/db";
 import { HelpStatus, HelpCategory } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
+import { repositoryNameFilter } from "@/lib/repositoryIdentity";
 
 export const PUBLIC_REPOSITORY = { isIndexed: true, availability: "AVAILABLE" as const };
-const ACCEPTING_HELP = { maintainerRequests: { none: { isActive: true, status: "NOT_LOOKING" as const } } };
+const ACCEPTING_HELP = { isArchived: false, maintainerRequests: { none: { isActive: true, status: "NOT_LOOKING" as const } } };
 
 const CONFIDENCE_ORDER: Record<string, number> = { VERIFIED: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -29,7 +30,7 @@ export const repositoryCardSelect = {
   helpCategories: { select: { category: true, verified: true } },
   evidence: {
     select: { title: true, confidence: true, type: true },
-    orderBy: { discoveredAt: "desc" as const },
+    orderBy: [{ confidence: "asc" as const }, { discoveredAt: "desc" as const }, { id: "asc" as const }],
     take: 6,
   },
 } satisfies Prisma.RepositorySelect;
@@ -96,12 +97,15 @@ function buildExploreWhere(filters: ExploreFilters): Prisma.RepositoryWhereInput
   const where: Prisma.RepositoryWhereInput = { ...PUBLIC_REPOSITORY };
   if (filters.helpCategory || filters.beginnerFriendly || filters.seekingMaintainers || filters.activelyAsking) Object.assign(where, ACCEPTING_HELP);
   if (filters.language) where.primaryLanguage = { equals: filters.language, mode: "insensitive" };
-  if (filters.status) where.status = filters.status;
+  const statuses = [...new Set([
+    ...(filters.status ? [filters.status] : []),
+    ...(filters.seekingMaintainers ? [HelpStatus.SEEKING_MAINTAINERS] : []),
+    ...(filters.activelyAsking ? [HelpStatus.ACTIVELY_ASKING] : []),
+  ])];
+  if (statuses.length) where.status = statuses.length === 1 ? statuses[0] : { in: statuses };
   if (filters.minStars) where.stars = { gte: filters.minStars };
   if (filters.beginnerFriendly) where.isBeginnerFriendly = true;
   if (filters.helpCategory) where.helpCategories = { some: { category: filters.helpCategory } };
-  if (filters.seekingMaintainers) where.status = HelpStatus.SEEKING_MAINTAINERS;
-  if (filters.activelyAsking) where.status = HelpStatus.ACTIVELY_ASKING;
   if (filters.query) {
     const q = filters.query;
     where.OR = [
@@ -137,8 +141,11 @@ function sortToOrderBy(sort: ExploreSort): Prisma.RepositoryOrderByWithRelationI
 export async function exploreRepositories({ filters, sort, page, pageSize = 24 }: ExploreParams) {
   const where = buildExploreWhere(filters);
   const orderBy = sortToOrderBy(sort);
+  const total = await db.repository.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  page = Math.min(Math.max(1, page), totalPages);
 
-  const [items, total, languages] = await Promise.all([
+  const [items, languages] = await Promise.all([
     db.repository.findMany({
       where,
       select: repositoryCardSelect,
@@ -146,7 +153,6 @@ export async function exploreRepositories({ filters, sort, page, pageSize = 24 }
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    db.repository.count({ where }),
     db.repository.findMany({
       where: { ...PUBLIC_REPOSITORY, primaryLanguage: { not: null } },
       select: { primaryLanguage: true },
@@ -159,14 +165,14 @@ export async function exploreRepositories({ filters, sort, page, pageSize = 24 }
     total,
     page,
     pageSize,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    totalPages,
     availableLanguages: languages.map((l) => l.primaryLanguage).filter((l): l is string => Boolean(l)).sort(),
   };
 }
 
 export async function getRepositoryDetail(owner: string, repo: string, includeRemoved = false) {
-  return db.repository.findUnique({
-    where: { fullName: `${owner}/${repo}`, ...(includeRemoved ? {} : PUBLIC_REPOSITORY) },
+  return db.repository.findFirst({
+    where: { ...repositoryNameFilter(owner, repo), ...(includeRemoved ? {} : PUBLIC_REPOSITORY) },
     include: {
       _count: { select: { upvotes: true } },
       helpCategories: true,
@@ -211,8 +217,8 @@ export async function matchProjectsForDeveloper({ languages, helpCategories, exp
 }
 
 export async function repositoryExists(owner: string, repo: string): Promise<boolean> {
-  const found = await db.repository.findUnique({
-    where: { fullName: `${owner}/${repo}` },
+  const found = await db.repository.findFirst({
+    where: repositoryNameFilter(owner, repo),
     select: { id: true },
   });
   return Boolean(found);

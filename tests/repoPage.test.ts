@@ -42,6 +42,16 @@ it("renders the repo overview, evidence and saved control, with honest empty sta
   mocks.repository.mockResolvedValue({ ...repository, metricSnapshots: [], evidence: [], helpCategories: [] });
   mocks.auth.mockResolvedValue(null);
   const empty = await render();
+  expect(empty).toContain("callbackUrl=%2Fbrightloop%2Fqueuelight%2Fclaim");
+  expect(empty).toContain("callbackUrl=%2Fbrightloop%2Fqueuelight%3Ffeedback%3Dopen%23feedback");
+  mocks.repository.mockResolvedValue({ ...repository, isArchived: true });
+  const archived = await render();
+  expect(archived).not.toContain("Where you can help");
+  expect(archived).not.toContain("Find your next contribution");
+  expect(archived).not.toContain("/claim");
+  const feedback = renderToStaticMarkup(await RepoPage({ params: Promise.resolve({ owner: "brightloop", repo: "queuelight" }), searchParams: Promise.resolve({ feedback: "open" }) }));
+  expect(feedback).toMatch(/<details[^>]*id="feedback"[^>]*open=""/);
+  await expect(RepoPage({ params: Promise.resolve({ owner: "BrightLoop", repo: "QueueLight" }), searchParams: Promise.resolve({ report: "open" }) })).rejects.toMatchObject({ digest: expect.stringContaining("/brightloop/queuelight?report=open") });
   expect(empty).toContain("Activity will appear after");
   expect(empty).toContain("No supporting evidence");
   expect(empty).not.toContain('aria-pressed=');

@@ -4,6 +4,7 @@ import { findPhraseMatches, type PhraseMatch } from "./phrases";
 import type { ComputedMetrics } from "./metrics";
 import type { ScoreResult } from "./scoring";
 import type { StatusResult } from "./status";
+import { HELP_WANTED_LABEL, GOOD_FIRST_ISSUE_LABEL, issueLabelQuery } from "../github/labels";
 
 export interface SourcedPhraseMatch extends PhraseMatch {
   sourceType: EvidenceSourceType;
@@ -75,6 +76,7 @@ export interface BuildEvidenceParams {
 export function buildEvidence(params: BuildEvidenceParams): EvidenceInput[] {
   const { raw, sourcedPhraseMatches, metrics, capacityResult, beginnerResult } = params;
   const evidence: EvidenceInput[] = [];
+  const labels = [...(raw.labels ?? []), ...raw.issues.flatMap((issue) => issue.labels)];
   if (raw.issuesTruncated) {
     evidence.push({
       type: EvidenceType.METRIC,
@@ -111,8 +113,8 @@ export function buildEvidence(params: BuildEvidenceParams): EvidenceInput[] {
     evidence.push({
       type: EvidenceType.LABEL,
       title: `${metrics.helpWantedIssueCount} "help wanted" issue(s)`,
-      description: `${metrics.helpWantedIssueCount} open issue(s) are labelled "help wanted".`,
-      sourceUrl: `${raw.url}/issues?q=${encodeURIComponent('is:issue is:open label:"help wanted"')}`,
+      description: `${metrics.helpWantedIssueCount} open issue(s) have "help wanted" or equivalent labels.`,
+      sourceUrl: `${raw.url}/issues?q=${encodeURIComponent(issueLabelQuery(labels, HELP_WANTED_LABEL, "help wanted"))}`,
       sourceType: EvidenceSourceType.GITHUB_ISSUE,
       confidence: ConfidenceLevel.VERIFIED,
     });
@@ -122,8 +124,8 @@ export function buildEvidence(params: BuildEvidenceParams): EvidenceInput[] {
     evidence.push({
       type: EvidenceType.LABEL,
       title: `${metrics.goodFirstIssueCount} "good first issue" issue(s)`,
-      description: `${metrics.goodFirstIssueCount} open issue(s) are labelled "good first issue".`,
-      sourceUrl: `${raw.url}/issues?q=${encodeURIComponent('is:issue is:open label:"good first issue"')}`,
+      description: `${metrics.goodFirstIssueCount} open issue(s) have "good first issue" or equivalent beginner-friendly labels.`,
+      sourceUrl: `${raw.url}/issues?q=${encodeURIComponent(issueLabelQuery(labels, GOOD_FIRST_ISSUE_LABEL, "good first issue"))}`,
       sourceType: EvidenceSourceType.GITHUB_ISSUE,
       confidence: ConfidenceLevel.VERIFIED,
     });

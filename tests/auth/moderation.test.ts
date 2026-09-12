@@ -86,7 +86,7 @@ it("also blocks a removed repository when GitHub returns a new name for its nume
 it("rejects maintainer claims on a locked listing even with GitHub permissions", async () => {
   mocks.token.mockResolvedValue("token");
   mocks.permission.mockResolvedValue({ eligible: true });
-  mocks.find.mockResolvedValue({ isIndexed: true, isLocked: true });
+  mocks.first.mockResolvedValue({ isIndexed: true, isLocked: true });
   const form = new FormData();
   form.set("status", "NEED_MAINTAINER");
   expect(await submitMaintainerRequest("owner", "repo", { error: null }, form)).toHaveProperty("error", expect.stringContaining("locked"));
@@ -95,9 +95,9 @@ it("rejects maintainer claims on a locked listing even with GitHub permissions",
 
 it("hides deleted detail pages by default and scopes report resolution to its repository", async () => {
   await getRepositoryDetail("owner", "repo");
-  expect(mocks.find.mock.calls[0][0].where).toEqual({ fullName: "owner/repo", isIndexed: true, availability: "AVAILABLE" });
+  expect(mocks.first.mock.calls[0][0].where).toEqual({ fullName: { equals: "owner/repo", mode: "insensitive" }, isIndexed: true, availability: "AVAILABLE" });
   await getRepositoryDetail("owner", "repo", true);
-  expect(mocks.find.mock.calls[1][0].where).toEqual({ fullName: "owner/repo" });
+  expect(mocks.first.mock.calls[1][0].where).toEqual({ fullName: { equals: "owner/repo", mode: "insensitive" } });
   await resolveReport("repository", "report");
   expect(mocks.resolve).toHaveBeenCalledWith({ where: { id: "report", repositoryId: "repository", resolvedAt: null }, data: { resolvedAt: expect.any(Date) } });
 });

@@ -4,6 +4,7 @@ import type { RawRepositoryData } from "../github/types";
 import type { ComputedMetrics } from "./metrics";
 import type { PhraseMatch } from "./phrases";
 import type { ScoreResult } from "./scoring";
+import { HELP_WANTED_LABEL, GOOD_FIRST_ISSUE_LABEL } from "../github/labels";
 
 export interface CategoryResult {
   category: HelpCategory;
@@ -42,7 +43,7 @@ export function mapLabelsToCategory(labels: string[]): HelpCategory | null {
       if (rule.pattern.test(label)) return rule.category;
     }
   }
-  if (labels.some((l) => /good.?first.?issue|help.?wanted/i.test(l))) return HelpCategory.CODE;
+  if (labels.some((l) => GOOD_FIRST_ISSUE_LABEL.test(l) || HELP_WANTED_LABEL.test(l))) return HelpCategory.CODE;
   return null;
 }
 

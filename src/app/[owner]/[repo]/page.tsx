@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Star, GitFork, ArrowUpRight, ArrowLeft, Code2, Activity, Circle, Bookmark, ShieldCheck, Flag, ChevronDown } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -52,16 +52,25 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: `/${owner}/${repo}` },
+    alternates: { canonical: `/${data.owner}/${data.name}` },
     openGraph: { title, description, type: "website" },
   };
 }
 
-export default async function RepoPage({ params, searchParams }: { params: Promise<RepoPageParams>; searchParams: Promise<{ report?: string }> }) {
+export default async function RepoPage({ params, searchParams }: { params: Promise<RepoPageParams>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
   const isAdmin = isAdminLogin(session?.user.githubLogin);
   const repository = await loadRepo(params, isAdmin);
-  const reportState = (await searchParams).report;
+  const sp = await searchParams;
+  const { owner, repo } = await params;
+  if (owner !== repository.owner || repo !== repository.name) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(sp)) {
+      for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, item);
+    }
+    permanentRedirect(`/${repository.owner}/${repository.name}${query.size ? `?${query}` : ""}`);
+  }
+  const reportState = sp.report;
   const reportSent = reportState === "sent";
   const reports = isAdmin ? await db.repositoryFeedback.findMany({
     where: { repositoryId: repository.id, resolvedAt: null },
@@ -164,7 +173,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             </div>
           </section>
 
-          {repository.helpCategories.length > 0 ? (
+          {!repository.isArchived && repository.helpCategories.length > 0 ? (
             <section>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-400">Make a difference</p>
               <h2 className="mb-4 text-2xl font-semibold tracking-tight">Where you can help</h2>
@@ -195,7 +204,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             </> : <p className="rounded-2xl border border-dashed border-neutral-300 p-6 text-sm text-neutral-500 dark:border-neutral-700">Activity will appear after this repository has been analysed.</p>}
           </section>
 
-          <OpenOpportunities issues={repository.issues} />
+          {!repository.isArchived ? <OpenOpportunities issues={repository.issues} /> : null}
 
           <section id="evidence" aria-labelledby="evidence-heading" className="scroll-mt-24">
             <div className="mb-5 flex items-end justify-between gap-3">
@@ -232,14 +241,14 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             signedIn={Boolean(session?.user)}
             repositoryPath={`/${repository.owner}/${repository.name}`}
           /> : null}
-          {repository.isIndexed && !repository.isLocked ? <ClaimBanner
+          {repository.isIndexed && !repository.isLocked && !repository.isArchived ? <ClaimBanner
             owner={repository.owner}
             repo={repository.name}
             activeRequest={activeRequest}
             isSignedIn={Boolean(session?.user)}
           /> : null}
           <ContributorsList maintainers={repository.maintainers} />
-          {repository.isIndexed ? <details className="group rounded-2xl border border-border bg-card text-card-foreground">
+          {repository.isIndexed ? <details id="feedback" open={sp.feedback === "open"} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
               Give feedback
               <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
@@ -261,7 +270,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
                 </Select>
                 <Textarea name="notes" maxLength={2000} placeholder="Optional context" aria-label="Additional feedback context" />
                 <Button type="submit" size="sm">Send feedback</Button>
-              </form> : <Button asChild variant="outline" size="sm"><Link href="/sign-in">Sign in to send feedback</Link></Button>}
+              </form> : <Button asChild variant="outline" size="sm"><Link href={`/sign-in?callbackUrl=${encodeURIComponent(`/${repository.owner}/${repository.name}?feedback=open#feedback`)}`}>Sign in to send feedback</Link></Button>}
             </CardContent>
           </details> : null}
           {repository.isIndexed ? <details id="report" open={reportSent || reportState === "open"} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">

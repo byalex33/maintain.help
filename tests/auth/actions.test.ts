@@ -8,7 +8,7 @@ vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: () => { throw new Error("redirect to sign-in"); } }));
 vi.mock("@/lib/db", () => ({ db: {
-  repository: { findUnique: mocks.repository },
+  repository: { findUnique: mocks.repository, findFirst: mocks.repository },
   repositoryMaintainer: { findFirst: mocks.maintainer },
   repositoryFeedback: { create: mocks.feedback },
   savedRepository: { upsert: mocks.save, deleteMany: mocks.unsave },
@@ -20,7 +20,7 @@ import { setRepositorySaved } from "@/app/saved/actions";
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.auth.mockResolvedValue({ user: { id: "stable_local_id", githubLogin: "renamed-user" } });
-  mocks.repository.mockResolvedValue({ id: "repo_id" });
+  mocks.repository.mockResolvedValue({ id: "repo_id", owner: "owner", name: "repo" });
   mocks.maintainer.mockResolvedValue(null);
 });
 
@@ -62,7 +62,7 @@ describe("Clerk-backed user actions", () => {
     form.set("notes", "This listing contains spam.");
     await expect(submitRepositoryFeedback("owner", "repo", form)).rejects.toThrow("redirect");
     expect(mocks.feedback).toHaveBeenCalledWith({ data: { repositoryId: "repo_id", userId: "stable_local_id", type: "REPORT", notes: "This listing contains spam.", trusted: false } });
-    expect(mocks.repository).toHaveBeenCalledWith({ where: { fullName: "owner/repo", isIndexed: true }, select: { id: true } });
+    expect(mocks.repository).toHaveBeenCalledWith({ where: { fullName: { equals: "owner/repo", mode: "insensitive" }, isIndexed: true }, select: { id: true, owner: true, name: true } });
   });
 
   it("does not grant maintainer actions merely from a reused GitHub username", async () => {

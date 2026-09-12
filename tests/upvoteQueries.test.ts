@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ findMany: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0) }));
+const mocks = vi.hoisted(() => ({ findMany: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(30) }));
 vi.mock("@/lib/db", () => ({ db: { repository: mocks } }));
 import { exploreRepositories } from "@/lib/queries/repositories";
 
