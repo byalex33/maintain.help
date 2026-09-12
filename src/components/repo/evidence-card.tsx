@@ -18,13 +18,13 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export function EvidenceCard({ evidence }: { evidence: RepositoryEvidence }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-3">
+    <Card className="rounded-xl border-l-2 border-l-violet-300 p-5 dark:border-l-violet-700">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-sm font-medium">{evidence.title}</p>
         <ConfidenceBadge confidence={evidence.confidence} className="shrink-0" />
       </div>
-      <p className="mt-1.5 text-sm text-neutral-600 dark:text-neutral-400">{evidence.description}</p>
-      <div className="mt-2.5 flex items-center gap-1.5 text-xs text-neutral-400">
+      <p className="mt-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{evidence.description}</p>
+      <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
         <span className={evidence.type === "INFERENCE" ? "text-amber-600" : "text-emerald-600"}>
           {evidence.type === "INFERENCE" ? "Inferred" : "Explicit / observed"}
         </span>

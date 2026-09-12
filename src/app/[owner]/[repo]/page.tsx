@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Star, GitFork, ExternalLink, Circle, Bookmark, ShieldCheck, Flag, ChevronDown } from "lucide-react";
+import { Star, GitFork, ArrowUpRight, ArrowLeft, Code2, Activity, Circle, Bookmark, ShieldCheck, Flag, ChevronDown } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -84,35 +84,40 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
   const latestSnapshot = repository.metricSnapshots[0];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
-          <Link href={`/explore?language=${encodeURIComponent(repository.primaryLanguage ?? "")}`} className="hover:underline">
-            {repository.owner}
-          </Link>
-          <span>/</span>
-          <span className="font-medium text-neutral-900 dark:text-neutral-100">{repository.name}</span>
-        </div>
-
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{repository.fullName}</h1>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
+      <Link href="/explore" className="mb-7 inline-flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-violet-600 dark:hover:text-violet-400">
+        <ArrowLeft aria-hidden="true" className="size-4" /> Explore repositories
+      </Link>
+      <header className="relative isolate overflow-hidden rounded-3xl border border-violet-200/70 bg-violet-50/50 p-6 dark:border-violet-900/60 dark:bg-violet-950/15 sm:p-10">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 -z-10 size-80 rounded-full bg-violet-300/20 blur-3xl dark:bg-violet-700/15" />
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="min-w-0 flex-1 basis-96">
+            <div className="mb-4 flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-white text-violet-600 dark:border-violet-800 dark:bg-neutral-950 dark:text-violet-400"><Code2 aria-hidden="true" className="size-5" /></span>
+              <span className="break-all font-mono">{repository.owner} /</span>
+            </div>
+            <h1 className="break-words text-4xl font-semibold tracking-tight sm:text-5xl">{repository.name}</h1>
             {repository.description ? (
-              <p className="mt-1 max-w-2xl text-neutral-600 dark:text-neutral-400">{repository.description}</p>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-600 dark:text-neutral-400 sm:text-lg">{repository.description}</p>
             ) : null}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
           <a
             href={repository.url}
             target="_blank"
             rel="noreferrer noopener"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+            className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
           >
             View on GitHub
-            <ExternalLink className="size-3.5" />
+            <ArrowUpRight aria-hidden="true" className="size-4" />
           </a>
+          {session?.user && repository.isIndexed ? <form action={setRepositorySaved.bind(null, repository.id, !saved)}>
+            <Button type="submit" variant="outline" className="h-11 rounded-xl" aria-pressed={saved}><Bookmark aria-hidden="true" className={saved ? "fill-current" : ""} />{saved ? "Saved" : "Save"}</Button>
+          </form> : null}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
+        <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-violet-200/60 pt-6 text-sm text-neutral-600 dark:border-violet-900/60 dark:text-neutral-400">
           <span className="flex items-center gap-1">
             <Star className="size-4" />
             {formatStars(repository.stars)} stars
@@ -134,69 +139,77 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
           {!repository.isIndexed ? <Badge variant="danger">Deleted listing · admin only</Badge> : null}
           {repository.availability !== "AVAILABLE" ? <Badge variant="outline">Currently unavailable</Badge> : null}
         </div>
-      </div>
+      </header>
 
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
-        <div className="space-y-8">
-          <section>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={repository.status} />
+      <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-10">
+          <section aria-labelledby="status-heading" className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800">
+            <div className="p-6 sm:p-8">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Repository pulse</p>
               <ConfidenceBadge confidence={repository.statusConfidence} />
             </div>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            <h2 id="status-heading"><StatusBadge status={repository.status} className="gap-3 whitespace-normal rounded-none border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight dark:bg-transparent sm:text-3xl [&_svg]:size-6 [&_svg]:shrink-0" /></h2>
+            <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-400">
               {repository.statusReason ?? STATUS_DESCRIPTION[repository.status]}
             </p>
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-neutral-500">
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck aria-hidden="true" className="size-3.5" />{repository.statusVerified ? "Explicit / verified classification" : "Inferred from repository signals"}</span>
+              <a href="#evidence" className="inline-flex items-center gap-1 font-medium text-violet-700 hover:underline dark:text-violet-400">See the evidence <ArrowUpRight aria-hidden="true" className="size-3.5" /></a>
+            </div>
+            </div>
+            <div className="flex flex-wrap justify-between gap-2 border-t border-neutral-200 bg-neutral-50 px-6 py-3 text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/50 sm:px-8">
+              <span>{repository.lastAnalyzedAt ? `Last analysed ${repository.lastAnalyzedAt.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : "Not yet analysed"}</span>
+              <span>Analysis v{repository.analysisVersion}</span>
+            </div>
           </section>
-
-          <Card>
-            <CardHeader><CardTitle>How this was calculated</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-              <p><strong className="text-neutral-900 dark:text-neutral-100">{repository.statusVerified ? "Explicit / verified" : "Inferred"}</strong> classification with {repository.statusConfidence.toLowerCase()} confidence.</p>
-              <p>{repository.statusReason ?? STATUS_DESCRIPTION[repository.status]}</p>
-              {latestSnapshot ? <p>{latestSnapshot.activeMaintainersLast365d} active maintainers · {latestSnapshot.openIssues} open issues · {latestSnapshot.openPullRequests} open PRs · median PR age {latestSnapshot.medianOpenPrAgeDays === null ? "unknown" : `${Math.round(latestSnapshot.medianOpenPrAgeDays)} days`}.</p> : null}
-              <p>Analysis v{repository.analysisVersion} · {repository.lastAnalyzedAt ? repository.lastAnalyzedAt.toLocaleDateString("en-GB") : "not yet analysed"}</p>
-            </CardContent>
-          </Card>
 
           {repository.helpCategories.length > 0 ? (
             <section>
-              <h2 className="mb-3 text-lg font-semibold tracking-tight">Help needed</h2>
-              <div className="flex flex-wrap gap-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-400">Make a difference</p>
+              <h2 className="mb-4 text-2xl font-semibold tracking-tight">Where you can help</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {repository.helpCategories.map((c) => {
                   const Icon = HELP_CATEGORY_ICON[c.category];
                   return (
-                    <Badge key={c.category} variant={c.verified ? "default" : "outline"} className="gap-1.5 py-1">
-                      <Icon className="size-3.5" />
-                      {HELP_CATEGORY_LABEL[c.category]}
-                      {!c.verified ? <span className="text-[0.65rem] opacity-70">(inferred)</span> : null}
-                    </Badge>
+                    <div key={c.category} className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400"><Icon aria-hidden="true" className="size-5" /></span>
+                      <div><p className="text-sm font-medium">{HELP_CATEGORY_LABEL[c.category]}</p><p className="mt-0.5 text-xs text-neutral-500">{c.verified ? "Verified need" : "Inferred from signals"}</p></div>
+                    </div>
                   );
                 })}
               </div>
             </section>
           ) : null}
 
-          {repository.evidence.length > 0 ? (
-            <section>
-              <h2 className="mb-3 text-lg font-semibold tracking-tight">Why maintain.help thinks this</h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {repository.evidence.map((e) => (
-                  <EvidenceCard key={e.id} evidence={e} />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section>
-            <h2 className="mb-3 text-lg font-semibold tracking-tight">Activity</h2>
-            <ActivityCharts snapshots={repository.metricSnapshots} />
+          <section aria-labelledby="activity-heading">
+            <div className="mb-5 flex items-center gap-2.5"><Activity aria-hidden="true" className="size-5 text-violet-500" /><h2 id="activity-heading" className="text-2xl font-semibold tracking-tight">Project activity</h2></div>
+            {latestSnapshot ? <>
+              <dl className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-200 dark:border-neutral-800 dark:bg-neutral-800 sm:grid-cols-4">
+                <div className="bg-neutral-50 p-4 dark:bg-neutral-950"><dt className="text-xs text-neutral-500">Active maintainers</dt><dd className="mt-3 text-2xl font-semibold tabular-nums">{latestSnapshot.activeMaintainersLast365d}</dd><dd className="mt-1 text-xs text-neutral-500">last 12 months</dd></div>
+                <div className="bg-neutral-50 p-4 dark:bg-neutral-950"><dt className="text-xs text-neutral-500">Open issues</dt><dd className="mt-3 text-2xl font-semibold tabular-nums">{formatStars(latestSnapshot.openIssues)}</dd></div>
+                <div className="bg-neutral-50 p-4 dark:bg-neutral-950"><dt className="text-xs text-neutral-500">Open PRs</dt><dd className="mt-3 text-2xl font-semibold tabular-nums">{formatStars(latestSnapshot.openPullRequests)}</dd></div>
+                <div className="bg-neutral-50 p-4 dark:bg-neutral-950"><dt className="text-xs text-neutral-500">Median PR age</dt><dd className="mt-3 text-2xl font-semibold tabular-nums">{latestSnapshot.medianOpenPrAgeDays === null ? "—" : Math.round(latestSnapshot.medianOpenPrAgeDays)}</dd><dd className="mt-1 text-xs text-neutral-500">{latestSnapshot.medianOpenPrAgeDays === null ? "Not available" : "days open"}</dd></div>
+              </dl>
+              <ActivityCharts snapshots={repository.metricSnapshots} />
+            </> : <p className="rounded-2xl border border-dashed border-neutral-300 p-6 text-sm text-neutral-500 dark:border-neutral-700">Activity will appear after this repository has been analysed.</p>}
           </section>
 
           <OpenOpportunities issues={repository.issues} />
+
+          <section id="evidence" aria-labelledby="evidence-heading" className="scroll-mt-24">
+            <div className="mb-5 flex items-end justify-between gap-3">
+              <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Behind the status</p><h2 id="evidence-heading" className="text-2xl font-semibold tracking-tight">Evidence &amp; signals</h2></div>
+              <span className="shrink-0 font-mono text-xs text-neutral-500">{repository.evidence.length} signals</span>
+            </div>
+            {repository.evidence.length > 0 ? <div className="grid grid-cols-1 gap-3">
+              {repository.evidence.map((e) => <EvidenceCard key={e.id} evidence={e} />)}
+            </div> : <p className="rounded-2xl border border-dashed border-neutral-300 p-6 text-sm text-neutral-500 dark:border-neutral-700">No supporting evidence has been recorded yet.</p>}
+          </section>
         </div>
 
-        <div className={isAdmin ? "order-first space-y-4 lg:order-none" : "space-y-4"}>
-          {isAdmin ? <Card className="border-blue-200 dark:border-blue-900">
+        <div className={isAdmin ? "order-first min-w-0 space-y-5 lg:order-none" : "min-w-0 space-y-5"}>
+          {isAdmin ? <Card className="rounded-2xl border-blue-200 dark:border-blue-900">
             <CardHeader><CardTitle><span className="flex items-center gap-2"><ShieldCheck aria-hidden="true" className="size-4" />Repository management</span></CardTitle></CardHeader>
             <CardContent className="space-y-5">
               <Link href="/admin" className="text-xs text-neutral-500 underline underline-offset-4">Back to admin</Link>
@@ -219,9 +232,6 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             signedIn={Boolean(session?.user)}
             repositoryPath={`/${repository.owner}/${repository.name}`}
           /> : null}
-          {session?.user && repository.isIndexed ? <form action={setRepositorySaved.bind(null, repository.id, !saved)}>
-            <Button type="submit" variant="outline" className="w-full"><Bookmark className={saved ? "fill-current" : ""} />{saved ? "Unsave repository" : "Save repository"}</Button>
-          </form> : null}
           {repository.isIndexed && !repository.isLocked ? <ClaimBanner
             owner={repository.owner}
             repo={repository.name}
@@ -229,7 +239,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             isSignedIn={Boolean(session?.user)}
           /> : null}
           <ContributorsList maintainers={repository.maintainers} />
-          {repository.isIndexed ? <details className="group rounded-lg border border-border bg-card text-card-foreground">
+          {repository.isIndexed ? <details className="group rounded-2xl border border-border bg-card text-card-foreground">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
               Give feedback
               <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
@@ -254,7 +264,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
               </form> : <Button asChild variant="outline" size="sm"><Link href="/sign-in">Sign in to send feedback</Link></Button>}
             </CardContent>
           </details> : null}
-          {repository.isIndexed ? <details id="report" open={reportSent || reportState === "open"} className="group scroll-mt-20 rounded-lg border border-border bg-card text-card-foreground">
+          {repository.isIndexed ? <details id="report" open={reportSent || reportState === "open"} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
               <span className="flex items-center gap-2"><Flag aria-hidden="true" className="size-4" />Report repository</span>
               <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
@@ -272,7 +282,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             </CardContent>
           </details> : null}
           {repository.topics.length > 0 ? (
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Topics</CardTitle>
               </CardHeader>
