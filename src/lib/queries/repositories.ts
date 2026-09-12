@@ -43,11 +43,11 @@ export function topSignals(evidence: { title: string; confidence: string }[], co
     .map((e) => e.title);
 }
 
-async function findRepos(where: Prisma.RepositoryWhereInput, take: number, orderBy: Prisma.RepositoryOrderByWithRelationInput[] = []) {
+async function findRepos(where: Prisma.RepositoryWhereInput, take: number) {
   return db.repository.findMany({
     where: { ...PUBLIC_REPOSITORY, ...ACCEPTING_HELP, ...where },
     select: repositoryCardSelect,
-    orderBy: orderBy.length ? orderBy : [{ stars: "desc" }],
+    orderBy: [{ stars: "desc" }],
     take,
   });
 }
@@ -56,10 +56,6 @@ export interface HomepageSections {
   featured: RepositoryCard | null;
   seekingMaintainers: RepositoryCard[];
   activelyAsking: RepositoryCard[];
-  goodFirstProjects: RepositoryCard[];
-  needsPrReviewers: RepositoryCard[];
-  needsDocumentationHelp: RepositoryCard[];
-  trending: RepositoryCard[];
 }
 
 export async function getHomepageSections(): Promise<HomepageSections> {
@@ -67,25 +63,13 @@ export async function getHomepageSections(): Promise<HomepageSections> {
     featured,
     seekingMaintainers,
     activelyAsking,
-    goodFirstProjects,
-    needsPrReviewers,
-    needsDocumentationHelp,
-    trending,
   ] = await Promise.all([
     db.repository.findFirst({ where: { ...PUBLIC_REPOSITORY, ...ACCEPTING_HELP, isFeatured: true }, select: repositoryCardSelect }),
     findRepos({ status: HelpStatus.SEEKING_MAINTAINERS }, 6),
     findRepos({ status: HelpStatus.ACTIVELY_ASKING }, 6),
-    findRepos({ isBeginnerFriendly: true }, 6),
-    findRepos({ helpCategories: { some: { category: HelpCategory.PR_REVIEW } } }, 6),
-    findRepos({ helpCategories: { some: { category: HelpCategory.DOCUMENTATION } } }, 6),
-    findRepos(
-      { status: { in: [HelpStatus.ACTIVELY_ASKING, HelpStatus.SEEKING_MAINTAINERS, HelpStatus.LIKELY_NEEDS_HELP] } },
-      8,
-      [{ pushedAt: "desc" }]
-    ),
   ]);
 
-  return { featured, seekingMaintainers, activelyAsking, goodFirstProjects, needsPrReviewers, needsDocumentationHelp, trending };
+  return { featured, seekingMaintainers, activelyAsking };
 }
 
 export interface ExploreFilters {

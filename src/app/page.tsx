@@ -10,13 +10,7 @@ export default async function HomePage() {
   const sections = await getHomepageSections();
 
   const hasAnyData = sections.featured ||
-    sections.seekingMaintainers.length +
-      sections.activelyAsking.length +
-      sections.goodFirstProjects.length +
-      sections.needsPrReviewers.length +
-      sections.needsDocumentationHelp.length +
-      sections.trending.length >
-    0;
+    sections.seekingMaintainers.length + sections.activelyAsking.length > 0;
 
   return (
     <div>
@@ -62,27 +56,6 @@ export default async function HomePage() {
               description="Maintainers have explicitly said they want contributor help."
               repos={sections.activelyAsking}
               exploreHref="/explore?status=ACTIVELY_ASKING"
-            />
-            <RepoSection
-              title="Good first projects"
-              description="Beginner friendly, based on more than just a label."
-              repos={sections.goodFirstProjects}
-              exploreHref="/explore?beginnerFriendly=1"
-            />
-            <RepoSection
-              title="Needs PR reviewers"
-              repos={sections.needsPrReviewers}
-              exploreHref="/explore?category=PR_REVIEW"
-            />
-            <RepoSection
-              title="Documentation help wanted"
-              repos={sections.needsDocumentationHelp}
-              exploreHref="/explore?category=DOCUMENTATION"
-            />
-            <RepoSection
-              title="Trending projects needing contributors"
-              repos={sections.trending}
-              exploreHref="/explore?sort=recent"
             />
           </>
         ) : (
