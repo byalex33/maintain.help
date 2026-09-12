@@ -59,9 +59,9 @@ export function MatchFilters() {
     <div className="flex flex-col gap-6">
       <div>
         <Label className="mb-2 text-xs text-neutral-500">Languages</Label>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
           {LANGUAGES.map((lang) => (
-            <label key={lang} className="flex items-center gap-2 text-sm">
+            <label key={lang} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-2 text-xs has-[[data-state=checked]]:border-foreground has-[[data-state=checked]]:bg-muted">
               <Checkbox checked={languages.includes(lang)} onCheckedChange={() => updateList("languages", lang, languages)} />
               {lang}
             </label>
@@ -71,9 +71,9 @@ export function MatchFilters() {
 
       <div>
         <Label className="mb-2 text-xs text-neutral-500">Help type</Label>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
           {Object.values(HelpCategory).map((cat) => (
-            <label key={cat} className="flex items-center gap-2 text-sm">
+            <label key={cat} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-2 text-xs has-[[data-state=checked]]:border-foreground has-[[data-state=checked]]:bg-muted">
               <Checkbox checked={categories.includes(cat)} onCheckedChange={() => updateList("categories", cat, categories)} />
               {HELP_CATEGORY_LABEL[cat]}
             </label>
@@ -83,9 +83,9 @@ export function MatchFilters() {
 
       <div>
         <Label className="mb-2 text-xs text-neutral-500">Experience</Label>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
           {EXPERIENCE_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-2 text-sm">
+            <label key={opt.value} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-2 text-xs has-[[data-state=checked]]:border-foreground has-[[data-state=checked]]:bg-muted">
               <Checkbox checked={experience === opt.value} onCheckedChange={() => setExperience(opt.value)} />
               {opt.label}
             </label>

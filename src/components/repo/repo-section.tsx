@@ -9,20 +9,23 @@ export function RepoSection({
   description,
   repos,
   exploreHref,
+  featured,
 }: {
   title: string;
   description?: string;
   repos: RepositoryCard[];
   exploreHref: string;
+  featured?: RepositoryCard | null;
 }) {
-  if (repos.length === 0) return null;
+  const cards = featured ? [featured, ...repos.filter((repo) => repo.id !== featured.id)] : repos;
+  if (cards.length === 0) return null;
 
   return (
-    <section className="py-8">
-      <div className="mb-4 flex items-end justify-between gap-4">
+    <section className="py-12">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          {description ? <p className="text-sm text-neutral-500 dark:text-neutral-400">{description}</p> : null}
+          <h2 className="section-title">{title}</h2>
+          {description ? <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
         </div>
         <Link
           href={exploreHref}
@@ -32,9 +35,9 @@ export function RepoSection({
           <ArrowRight className="size-3.5" />
         </Link>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {repos.map((repo) => (
-          <RepoCard key={repo.id} repo={repo} />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {cards.map((repo) => (
+          <RepoCard key={repo.id} repo={repo} featured={repo.id === featured?.id} />
         ))}
       </div>
     </section>

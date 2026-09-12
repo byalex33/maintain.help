@@ -37,7 +37,7 @@ async function cachedRepository(listing: Repository, submittedById?: string) {
  * Fetches a repository from GitHub, runs the detection/scoring engine, and
  * persists everything. Used by both the "add repository" flow and scheduled
  * reanalysis. A repository that has been claimed keeps its verified
- * maintainer status as the source of truth — this only refreshes the
+ * maintainer status as the source of truth; this only refreshes the
  * underlying evidence and metrics.
  */
 export async function ingestRepository(owner: string, repo: string, options: { submittedById?: string } = {}) {

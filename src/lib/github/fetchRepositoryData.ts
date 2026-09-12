@@ -21,7 +21,7 @@ function decodeBase64(content: string): string {
 /**
  * Fetches everything the detection/scoring engine needs for one repository.
  * Intended for use in ingestion jobs (add-repository flow, scheduled reanalysis),
- * not on every page render — results should be persisted via `db`.
+ * not on every page render; results should be persisted via `db`.
  */
 export async function fetchRepositoryData(owner: string, repo: string): Promise<RawRepositoryData> {
   const octokit = getOctokit();

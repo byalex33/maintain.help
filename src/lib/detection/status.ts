@@ -79,7 +79,7 @@ export function determineStatus(
       confidence: deriveInferredConfidence(capacityResult.score),
       verified: false,
       reason:
-        "maintain.help detected signs of maintainer capacity pressure based on repository activity. No explicit maintainer request has been found — this is an inference, not a statement from the maintainers.",
+        "maintain.help detected signs of maintainer capacity pressure based on repository activity. No explicit maintainer request has been found. This is an inference, not a statement from the maintainers.",
     };
   }
 
@@ -109,7 +109,7 @@ const WANTED_TO_HELP_STATUS: Partial<Record<WantedHelpStatus, HelpStatus>> = {
 
 /**
  * A verified maintainer's self-reported status always wins over whatever
- * maintain.help inferred — this is the strongest possible evidence.
+ * maintain.help inferred; this is the strongest possible evidence.
  */
 export function applyMaintainerOverride(
   base: StatusResult,

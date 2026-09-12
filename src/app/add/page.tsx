@@ -1,3 +1,4 @@
+import { PageIntro } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -36,12 +37,9 @@ export default async function AddRepositoryPage() {
     error = "We couldn't load your GitHub repositories. Please try again shortly.";
   }
   return (
-    <div className="mx-auto max-w-xl px-4 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">Add a repository</h1>
-      <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-        Choose a public repository you own or have admin or maintainer access to, including organization repositories.
-      </p>
-      <div className="mt-6">
+    <div className="page-shell">
+      <PageIntro eyebrow="For maintainers" title="Let the right people find you." description="Add a public repository you own or maintain. We’ll look at its activity and help contributors find a way in." />
+      <div className="grid items-start gap-10 md:grid-cols-[minmax(0,1fr)_260px]"><div className="form-panel min-w-0">
         {error ? (
           <div className="space-y-3">
             <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -51,7 +49,7 @@ export default async function AddRepositoryPage() {
             </form>
           </div>
         ) : <AddRepositoryForm repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} />}
-      </div>
+      </div><aside className="space-y-6 text-sm leading-7 text-muted-foreground"><p className="eyebrow">How it works</p><div><p className="font-medium text-foreground">01 / Choose your repository</p><p>Use your personal projects or an organization where you have maintainer access.</p></div><div><p className="font-medium text-foreground">02 / We gather the evidence</p><p>Public activity, contribution guides, and requests for help shape your listing.</p></div><div><p className="font-medium text-foreground">03 / Make it yours</p><p>Verify your access and tell contributors what kind of help you need.</p></div></aside></div>
     </div>
   );
 }

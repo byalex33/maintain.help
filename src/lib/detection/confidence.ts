@@ -1,7 +1,7 @@
 export type ConfidenceLevel = "VERIFIED" | "HIGH" | "MEDIUM" | "LOW";
 
 /**
- * Explicit maintainer statements are always "verified" — they are not an
+ * Explicit maintainer statements are always "verified"; they are not an
  * inference. Everything else gets a graduated confidence based on how much
  * the heuristic score clears the classification threshold.
  */

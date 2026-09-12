@@ -19,14 +19,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "maintain.help — Find open source that needs you",
+    default: "maintain.help: Find open source that needs you",
     template: "%s | maintain.help",
   },
   description:
-    "Discover open-source projects looking for contributors, reviewers, maintainers, documentation help, and more — with the evidence behind every conclusion.",
+    "Discover open-source projects looking for contributors, reviewers, maintainers, documentation help, and more, with the evidence behind every conclusion.",
   metadataBase: new URL("https://maintain.help"),
   openGraph: {
-    title: "maintain.help — Find open source that needs you",
+    title: "maintain.help: Find open source that needs you",
     description:
       "Discover open-source projects looking for contributors, reviewers, maintainers, documentation help, and more.",
     type: "website",
@@ -42,8 +42,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <ClerkProvider appearance={{ elements: { footer: { display: "none" }, footerItem: { display: "none" } } }} signInUrl="/sign-in" signUpUrl="/sign-in" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-background focus:p-3 focus:outline-2">Skip to content</a>
           <SiteHeader />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" className="min-w-0 flex-1">{children}</main>
           <SiteFooter />
           <SignInToast />
         </ClerkProvider>

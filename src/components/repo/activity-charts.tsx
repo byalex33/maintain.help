@@ -25,10 +25,10 @@ function Chart({
         <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="currentColor" className="text-neutral-400" />
         <YAxis tick={{ fontSize: 11 }} stroke="currentColor" className="text-neutral-400" allowDecimals={false} />
         <Tooltip
-          contentStyle={{ fontSize: 12, borderRadius: 8 }}
-          labelClassName="text-neutral-900"
+          contentStyle={{ fontSize: 12, borderRadius: 12, backgroundColor: "var(--card)", color: "var(--foreground)", borderColor: "var(--border)" }}
+          labelClassName="text-foreground"
         />
-        <Line type="monotone" dataKey="value" name={dataKey} stroke={color} strokeWidth={2} dot={{ r: 2 }} />
+        <Line type="monotone" dataKey="value" name={dataKey} stroke={color} strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -43,8 +43,8 @@ export function ActivityCharts({ snapshots }: { snapshots: RepositoryMetricSnaps
   const prs = ordered.map((s) => ({ date: formatDate(s.capturedAt), value: s.openPullRequests }));
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <Card>
+    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+      <Card className="min-w-0 rounded-xl">
         <CardHeader>
           <CardTitle>Commits (last 30d)</CardTitle>
         </CardHeader>
@@ -52,15 +52,15 @@ export function ActivityCharts({ snapshots }: { snapshots: RepositoryMetricSnaps
           <Chart data={commits} dataKey="Commits" color="#2563eb" />
         </CardContent>
       </Card>
-      <Card>
+      <Card className="min-w-0 rounded-xl">
         <CardHeader>
           <CardTitle>Open issues</CardTitle>
         </CardHeader>
         <CardContent>
-          <Chart data={issues} dataKey="Open issues" color="#7c3aed" />
+          <Chart data={issues} dataKey="Open issues" color="#059669" />
         </CardContent>
       </Card>
-      <Card>
+      <Card className="min-w-0 rounded-xl">
         <CardHeader>
           <CardTitle>Open pull requests</CardTitle>
         </CardHeader>

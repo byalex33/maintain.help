@@ -13,7 +13,7 @@ const BATCH_SIZE = 15;
  * Scheduled reanalysis. Intended to be triggered by a Vercel Cron Job hitting
  * this route on a schedule (see vercel.json). Prioritises repositories that
  * are either manually submitted or already popular/indexed, and picks the
- * most stale ones first — this deliberately never attempts to scan all of
+ * most stale ones first; this deliberately never attempts to scan all of
  * GitHub.
  */
 export async function GET(req: NextRequest) {

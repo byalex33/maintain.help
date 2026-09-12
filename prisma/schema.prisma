@@ -1,4 +1,4 @@
-// maintain.help — Prisma schema
+// maintain.help: Prisma schema
 // Discovery platform for open-source repositories that need help.
 
 generator client {

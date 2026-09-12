@@ -2,14 +2,14 @@ import type { RawRepositoryData } from "../../src/lib/github/types";
 import { daysAgo, manyIssues, issue, steadyCommitActivity, commitActivity, contributor } from "./helpers";
 
 /**
- * Fixture data for local development and demos. Entirely fictional repositories —
- * never real GitHub projects — so no inferred or explicit status here should be
+ * Fixture data for local development and demos. Entirely fictional repositories,
+ * never real GitHub projects, so no inferred or explicit status here should be
  * read as a claim about any real maintainer. See Repository.isFixture.
  */
 export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
   const repos: RawRepositoryData[] = [];
 
-  // 1. Seeking maintainers — explicit README statement.
+  // 1. Seeking maintainers: explicit README statement.
   repos.push({
     githubId: 900001,
     owner: "brightloop",
@@ -34,7 +34,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "MIT",
     defaultBranch: "main",
     readmeText:
-      "# queuelight\n\nA lightweight job queue for Node.js.\n\n## Project status\n\nI (the original author) no longer have the time to maintain queuelight properly. We are looking for maintainers to take this project forward — please reach out if you're interested in co-maintaining or taking over entirely.\n\n## Installation\n\n`npm install queuelight`",
+      "# queuelight\n\nA lightweight job queue for Node.js.\n\n## Project status\n\nI (the original author) no longer have the time to maintain queuelight properly. We are looking for maintainers to take this project forward. Please reach out if you're interested in co-maintaining or taking over entirely.\n\n## Installation\n\n`npm install queuelight`",
     contributingText: "Thanks for your interest! PRs are reviewed on a best-effort basis right now.",
     hasIssueTemplates: true,
     issues: [
@@ -46,7 +46,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     contributorStats: [contributor("original-author", [{ weeksAgo: 3, commits: 2 }, { weeksAgo: 10, commits: 3 }], now)],
   });
 
-  // 2. Seeking co-maintainers — explicit issue statement.
+  // 2. Seeking co-maintainers: explicit issue statement.
   repos.push({
     githubId: 900002,
     owner: "fernforge",
@@ -96,7 +96,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
   // detection engine also scans open issue titles for explicit statements.
   repos[1].issues[0].title = "Seeking co-maintainers for raster-cli";
 
-  // 3. Healthy — actively maintained, popular.
+  // 3. Healthy: actively maintained, popular.
   repos.push({
     githubId: 900003,
     owner: "orbitlab",
@@ -121,7 +121,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "MIT",
     defaultBranch: "main",
     readmeText: "# signalstate\n\nFine-grained reactive state management.\n\n## Installation\n\n`npm install signalstate`",
-    contributingText: "We welcome contributions of all kinds — see CONTRIBUTING.md.",
+    contributingText: "We welcome contributions of all kinds. See CONTRIBUTING.md.",
     hasIssueTemplates: true,
     issues: [
       ...manyIssues(25, { state: "open", isPullRequest: false, createdAt: daysAgo(20, now), updatedAt: daysAgo(2, now), closedAt: null, commentCount: 3, authorAssociation: null, labels: [] }, "https://github.com/orbitlab/signalstate", "Feature request"),
@@ -137,13 +137,13 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     ],
   });
 
-  // 4. Healthy — quiet but finished (no recent commits, no backlog, stable).
+  // 4. Healthy: quiet but finished (no recent commits, no backlog, stable).
   repos.push({
     githubId: 900004,
     owner: "smallcraft",
     name: "unitparse",
     fullName: "smallcraft/unitparse",
-    description: "Parse and convert physical units — feature complete, low churn.",
+    description: "Parse and convert physical units: feature complete, low churn.",
     url: "https://github.com/smallcraft/unitparse",
     homepage: null,
     primaryLanguage: "Python",
@@ -196,7 +196,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     latestReleaseAt: daysAgo(25, now),
     license: "Apache-2.0",
     defaultBranch: "main",
-    readmeText: "# portside\n\nA self-hosted API gateway.\n\nOur documentation is thin in places — contributors welcome, especially for docs.",
+    readmeText: "# portside\n\nA self-hosted API gateway.\n\nOur documentation is thin in places. Contributors welcome, especially for docs.",
     contributingText: "We especially need help with documentation right now.",
     hasIssueTemplates: true,
     issues: [
@@ -218,7 +218,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     owner: "opencanvas",
     name: "sketchkit",
     fullName: "opencanvas/sketchkit",
-    description: "A friendly drawing toolkit for the web — great first project to contribute to.",
+    description: "A friendly drawing toolkit for the web. A great first project to contribute to.",
     url: "https://github.com/opencanvas/sketchkit",
     homepage: "https://sketchkit.dev",
     primaryLanguage: "JavaScript",
@@ -237,7 +237,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "MIT",
     defaultBranch: "main",
     readmeText: "# sketchkit\n\nA friendly drawing toolkit for the web.\n\n## Getting Started\n\n1. Fork the repo\n2. `npm install`\n3. `npm run dev`\n\nWe label easy issues with `good first issue` and try to respond within a couple of days.",
-    contributingText: "New to open source? Start with a `good first issue` — we're happy to help you through your first PR.",
+    contributingText: "New to open source? Start with a `good first issue`. We're happy to help you through your first PR.",
     hasIssueTemplates: true,
     issues: [
       ...manyIssues(10, { state: "open", isPullRequest: false, createdAt: daysAgo(20, now), updatedAt: daysAgo(3, now), closedAt: null, commentCount: 2, authorAssociation: null, labels: ["good first issue"] }, "https://github.com/opencanvas/sketchkit", "Good first issue"),
@@ -251,7 +251,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     ],
   });
 
-  // 7. Maintenance mode — explicit.
+  // 7. Maintenance mode: explicit.
   repos.push({
     githubId: 900007,
     owner: "driftworks",
@@ -275,7 +275,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     latestReleaseAt: daysAgo(300, now),
     license: "MIT",
     defaultBranch: "main",
-    readmeText: "# cachepan\n\nAn in-memory caching layer with pluggable backends.\n\n## Project status\n\ncachepan is feature-complete and is now in maintenance mode — we will only be merging critical bug fixes and security patches going forward. No new features are planned.",
+    readmeText: "# cachepan\n\nAn in-memory caching layer with pluggable backends.\n\n## Project status\n\ncachepan is feature-complete and is now in maintenance mode. We will only be merging critical bug fixes and security patches going forward. No new features are planned.",
     contributingText: "We are only accepting critical bug fixes at this time.",
     hasIssueTemplates: false,
     issues: [
@@ -286,7 +286,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     contributorStats: [contributor("drift-sam", [{ weeksAgo: 2, commits: 1 }, { weeksAgo: 10, commits: 1 }], now)],
   });
 
-  // 8. Inferred capacity pressure — HIGH confidence.
+  // 8. Inferred capacity pressure: HIGH confidence.
   repos.push({
     githubId: 900008,
     owner: "leafnode",
@@ -311,7 +311,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "MIT",
     defaultBranch: "main",
     readmeText: "# streamsketch\n\nA streaming data visualization library.",
-    contributingText: "PRs welcome, review may take a while — we're short on maintainer time.",
+    contributingText: "PRs welcome, review may take a while. We're short on maintainer time.",
     hasIssueTemplates: true,
     issues: [
       ...manyIssues(140, { state: "open", isPullRequest: false, createdAt: daysAgo(220, now), updatedAt: daysAgo(90, now), closedAt: null, commentCount: 3, authorAssociation: null, labels: [] }, "https://github.com/leafnode/streamsketch", "Open issue"),
@@ -327,7 +327,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     contributorStats: [contributor("leaf-jordan", [{ weeksAgo: 2, commits: 3 }, { weeksAgo: 6, commits: 2 }], now)],
   });
 
-  // 9. Inferred capacity pressure — MEDIUM confidence.
+  // 9. Inferred capacity pressure: MEDIUM confidence.
   repos.push({
     githubId: 900009,
     owner: "tallgrass",
@@ -352,7 +352,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "MIT",
     defaultBranch: "main",
     readmeText: "# formwright\n\nSchema-driven form generation for React.",
-    contributingText: "Please be patient — reviews can take a while right now.",
+    contributingText: "Please be patient. Reviews can take a while right now.",
     hasIssueTemplates: true,
     issues: [
       ...manyIssues(35, { state: "open", isPullRequest: false, createdAt: daysAgo(90, now), updatedAt: daysAgo(40, now), closedAt: null, commentCount: 2, authorAssociation: null, labels: [] }, "https://github.com/tallgrass/formwright", "Open issue"),
@@ -364,7 +364,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     contributorStats: [contributor("tall-morgan", Array.from({ length: 10 }, (_, i) => ({ weeksAgo: i, commits: 2 })), now)],
   });
 
-  // 10. Inferred capacity pressure — LOW confidence (borderline, cautious wording).
+  // 10. Inferred capacity pressure: LOW confidence (borderline, cautious wording).
   repos.push({
     githubId: 900010,
     owner: "coppervale",
@@ -428,7 +428,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "MIT",
     defaultBranch: "main",
     readmeText: "# taskloom\n\nA minimalist task runner.\n\nWe're looking for contributors interested in shell completion support and plugin authoring!",
-    contributingText: "Contributors wanted for plugin development — see open issues tagged `help wanted`.",
+    contributingText: "Contributors wanted for plugin development. See open issues tagged `help wanted`.",
     hasIssueTemplates: true,
     issues: [
       ...manyIssues(7, { state: "open", isPullRequest: false, createdAt: daysAgo(30, now), updatedAt: daysAgo(5, now), closedAt: null, commentCount: 2, authorAssociation: null, labels: ["help wanted"] }, "https://github.com/meridianOS/taskloom", "Help wanted"),
@@ -467,7 +467,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     license: "BSD-3-Clause",
     defaultBranch: "main",
     readmeText: "# pixelforge\n\nA GPU-accelerated image processing library.",
-    contributingText: "We have more PRs than we can review right now — reviewers welcome.",
+    contributingText: "We have more PRs than we can review right now. Reviewers welcome.",
     hasIssueTemplates: true,
     issues: [
       ...manyIssues(10, { state: "open", isPullRequest: false, createdAt: daysAgo(40, now), updatedAt: daysAgo(10, now), closedAt: null, commentCount: 1, authorAssociation: null, labels: [] }, "https://github.com/ridgeback/pixelforge", "Issue"),
@@ -581,7 +581,7 @@ export function buildFixtureRepositories(now: Date): RawRepositoryData[] {
     latestReleaseAt: daysAgo(4, now),
     license: "MIT",
     defaultBranch: "main",
-    readmeText: "# edgekit\n\nEdge runtime utilities for modern web frameworks.\n\nWe're growing fast — testing coverage is a priority and we'd love contributors focused on test coverage.",
+    readmeText: "# edgekit\n\nEdge runtime utilities for modern web frameworks.\n\nWe're growing fast. Testing coverage is a priority and we'd love contributors focused on test coverage.",
     contributingText: "See CONTRIBUTING.md. Testing help especially appreciated.",
     hasIssueTemplates: true,
     issues: [

@@ -69,7 +69,7 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
       router.push(`/${data.owner}/${data.repo}`);
     } catch {
       setStatus("error");
-      setError("Network error — please try again.");
+      setError("Network error. Please try again.");
     }
   }
 

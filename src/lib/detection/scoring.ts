@@ -12,7 +12,7 @@ export interface ScoreResult {
 }
 
 /**
- * Transparent, additive heuristic scoring — no ML. Each signal is a small,
+ * Transparent, additive heuristic scoring; no ML. Each signal is a small,
  * named, explainable rule so it can be surfaced directly as evidence.
  *
  * Deliberately conservative: a single weak signal (e.g. "one active

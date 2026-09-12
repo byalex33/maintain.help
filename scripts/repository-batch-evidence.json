@@ -1,0 +1,115 @@
+{
+  "checkedAt": "2026-09-09T20:46:22.614Z",
+  "results": [
+    {
+      "name": "sylvainhalle/textidote",
+      "status": "ACTIVELY_ASKING",
+      "reason": "4 \"help wanted\" and 0 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "GPL-3.0",
+      "helpWanted": 4,
+      "goodFirstIssues": 0
+    },
+    {
+      "name": "ytsaurus/ytsaurus",
+      "status": "ACTIVELY_ASKING",
+      "reason": "The repository explicitly states: \"help wanted\"",
+      "archived": false,
+      "fork": false,
+      "license": "Apache-2.0",
+      "helpWanted": 30,
+      "goodFirstIssues": 20
+    },
+    {
+      "name": "SpaRcle-Studio/SREngine",
+      "status": "ACTIVELY_ASKING",
+      "reason": "6 \"help wanted\" and 7 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "MIT",
+      "helpWanted": 6,
+      "goodFirstIssues": 7
+    },
+    {
+      "name": "openfoodfacts/openfoodfacts-server",
+      "status": "ACTIVELY_ASKING",
+      "reason": "16 \"help wanted\" and 43 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "AGPL-3.0",
+      "helpWanted": 16,
+      "goodFirstIssues": 43
+    },
+    {
+      "name": "freezy/VisualPinball.Engine",
+      "status": "ACTIVELY_ASKING",
+      "reason": "7 \"help wanted\" and 0 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "GPL-3.0",
+      "helpWanted": 7,
+      "goodFirstIssues": 0
+    },
+    {
+      "name": "mgeisler/textwrap",
+      "status": "ACTIVELY_ASKING",
+      "reason": "4 \"help wanted\" and 0 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "MIT",
+      "helpWanted": 4,
+      "goodFirstIssues": 0
+    },
+    {
+      "name": "Comfy-Org/ComfyUI_frontend",
+      "status": "ACTIVELY_ASKING",
+      "reason": "The repository explicitly states: \"We welcome contributions\"",
+      "archived": false,
+      "fork": false,
+      "license": "GPL-3.0",
+      "helpWanted": 23,
+      "goodFirstIssues": 7
+    },
+    {
+      "name": "release-plz/release-plz",
+      "status": "ACTIVELY_ASKING",
+      "reason": "21 \"help wanted\" and 15 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "Apache-2.0",
+      "helpWanted": 21,
+      "goodFirstIssues": 15
+    },
+    {
+      "name": "google/j2cl",
+      "status": "ACTIVELY_ASKING",
+      "reason": "5 \"help wanted\" and 0 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "Apache-2.0",
+      "helpWanted": 5,
+      "goodFirstIssues": 0
+    },
+    {
+      "name": "linkml/linkml",
+      "status": "ACTIVELY_ASKING",
+      "reason": "11 \"help wanted\" and 22 \"good first issue\" issue(s) are currently open",
+      "archived": false,
+      "fork": false,
+      "license": "Apache-2.0",
+      "helpWanted": 11,
+      "goodFirstIssues": 22
+    },
+    {
+      "name": "aya-rs/aya",
+      "status": "ACTIVELY_ASKING",
+      "reason": "The repository explicitly states: \"help wanted\"",
+      "archived": false,
+      "fork": false,
+      "license": "Apache-2.0",
+      "helpWanted": 18,
+      "goodFirstIssues": 1
+    }
+  ]
+}

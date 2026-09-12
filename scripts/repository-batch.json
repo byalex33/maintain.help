@@ -1,0 +1,15 @@
+{
+  "repositories": [
+    "sylvainhalle/textidote",
+    "ytsaurus/ytsaurus",
+    "SpaRcle-Studio/SREngine",
+    "openfoodfacts/openfoodfacts-server",
+    "freezy/VisualPinball.Engine",
+    "mgeisler/textwrap",
+    "Comfy-Org/ComfyUI_frontend",
+    "release-plz/release-plz",
+    "google/j2cl",
+    "linkml/linkml",
+    "aya-rs/aya"
+  ]
+}

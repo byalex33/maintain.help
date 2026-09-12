@@ -1,3 +1,4 @@
+import { PageIntro } from "@/components/layout/page-intro";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -13,8 +14,8 @@ export default async function SavedRepositoriesPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  return <main className="mx-auto max-w-6xl px-4 py-10">
-    <h1 className="text-2xl font-semibold">Saved repositories</h1>
-    {saved.length ? <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{saved.map(({ repository }) => <RepoCard key={repository.id} repo={repository} />)}</div> : <p className="mt-4 text-neutral-500">You haven&rsquo;t saved any repositories yet.</p>}
-  </main>;
+  return <div className="page-shell">
+    <PageIntro eyebrow="Your collection" title="Good projects. Kept close." description="A little shortlist of the open source you want to come back to." />
+    {saved.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{saved.map(({ repository }) => <RepoCard key={repository.id} repo={repository} />)}</div> : <p className="empty-panel">You haven&rsquo;t saved any repositories yet.</p>}
+  </div>;
 }

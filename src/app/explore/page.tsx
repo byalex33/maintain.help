@@ -1,3 +1,4 @@
+import { PageIntro } from "@/components/layout/page-intro";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -52,26 +53,21 @@ export default async function ExplorePage({
   const result = await exploreRepositories({ filters, sort, page });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Explore projects</h1>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          {result.total} {result.total === 1 ? "repository" : "repositories"} indexed
-        </p>
-      </div>
+    <div className="page-shell">
+      <PageIntro eyebrow="The project directory" title="Find something worth building." description="Open-source projects, real requests for help. Find a place where your contribution matters."><p className="eyebrow">{result.total} {result.total === 1 ? "repository" : "repositories"} indexed</p></PageIntro>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr]">
-        <aside>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="filter-panel">
           <ExploreFilters languages={result.availableLanguages} />
         </aside>
 
         <div>
           {result.items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-neutral-300 p-12 text-center text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+            <div className="empty-panel">
               No repositories match these filters.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {result.items.map((repo) => (
                 <RepoCard key={repo.id} repo={repo} />
               ))}

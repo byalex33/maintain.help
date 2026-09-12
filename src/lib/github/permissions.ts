@@ -3,7 +3,7 @@ import { Octokit } from "@octokit/rest";
 
 /**
  * GitHub collaborator permission levels that are sufficient to claim a
- * repository as a maintainer. "write" is deliberately excluded — a regular
+ * repository as a maintainer. "write" is deliberately excluded; a regular
  * contributor can push branches/open PRs but is not necessarily a maintainer;
  * requiring "admin" or "maintain" keeps claiming meaningful.
  */
@@ -22,7 +22,7 @@ export interface ClaimPermissionCheck {
 /**
  * Asks GitHub, on behalf of the signed-in user's own token, what their
  * permission level is on a repository. Must run server-side with the
- * user's OAuth access token — never trust a client-supplied permission claim.
+ * user's OAuth access token; never trust a client-supplied permission claim.
  */
 export async function checkClaimPermission(
   userAccessToken: string,

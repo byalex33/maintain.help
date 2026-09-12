@@ -1,0 +1,60 @@
+{
+  "importedAt": "2026-09-09T20:51:56.601Z",
+  "results": [
+    {
+      "fullName": "sylvainhalle/textidote",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "ytsaurus/ytsaurus",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "SpaRcle-Studio/SREngine",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "openfoodfacts/openfoodfacts-server",
+      "status": "LIKELY_NEEDS_HELP",
+      "ok": true
+    },
+    {
+      "fullName": "freezy/VisualPinball.Engine",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "mgeisler/textwrap",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "Comfy-Org/ComfyUI_frontend",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "release-plz/release-plz",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "google/j2cl",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "linkml/linkml",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    },
+    {
+      "fullName": "aya-rs/aya",
+      "status": "ACTIVELY_ASKING",
+      "ok": true
+    }
+  ]
+}

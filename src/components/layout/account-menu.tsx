@@ -34,11 +34,12 @@ export function AccountMenu({ username, image, isAdmin = false }: { username: st
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="" className="size-6 rounded-full" />
         ) : <UserRound aria-hidden="true" className="size-6" />}
-        <span className="max-w-32 truncate">{username}</span>
+        <span className="hidden max-w-32 truncate md:inline">{username}</span>
         <ChevronDown aria-hidden="true" className="size-3.5 text-neutral-500" />
       </summary>
       <nav aria-label="Account" onClick={() => { if (menu.current) menu.current.open = false; }} className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-neutral-200 bg-white p-1.5 text-sm shadow-lg dark:border-neutral-800 dark:bg-neutral-950 [&_a]:flex [&_a]:items-center [&_a]:gap-2 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a:hover]:bg-neutral-100 dark:[&_a:hover]:bg-neutral-800">
-        <Link href="/saved"><Bookmark aria-hidden="true" className="size-4" />Save</Link>
+        <Link href="/profile"><UserRound aria-hidden="true" className="size-4" />Your profile</Link>
+        <Link href="/saved"><Bookmark aria-hidden="true" className="size-4" />Saved repositories</Link>
         <Link href="/settings"><Settings aria-hidden="true" className="size-4" />Settings</Link>
         {isAdmin ? <Link href="/admin"><ShieldCheck aria-hidden="true" className="size-4" />Admin</Link> : null}
         <div className="my-1 border-t border-neutral-200 dark:border-neutral-800" />

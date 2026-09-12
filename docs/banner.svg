@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" role="img" aria-labelledby="title desc">
-  <title id="title">maintain.help — Find open source that needs you.</title>
+  <title id="title">maintain.help: Find open source that needs you.</title>
   <desc id="desc">A dark banner with lime accents connecting contributors, reviewers, and maintainers to open-source projects.</desc>
   <defs>
     <radialGradient id="glow" cx="90%" cy="20%" r="80%">

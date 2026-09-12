@@ -55,9 +55,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         </thead>
         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {users.map((user) => <tr key={user.id}>
-            <td className="px-5 py-4">{user.name ?? "—"}</td>
-            <td className="px-5 py-4">{user.githubLogin ? <a href={`https://github.com/${encodeURIComponent(user.githubLogin)}`} className="underline">{user.githubLogin}</a> : "—"}</td>
-            <td className="px-5 py-4">{user.email ?? "—"}</td>
+            <td className="px-5 py-4">{user.name ?? "N/A"}</td>
+            <td className="px-5 py-4">{user.githubLogin ? <a href={`https://github.com/${encodeURIComponent(user.githubLogin)}`} className="underline">{user.githubLogin}</a> : "N/A"}</td>
+            <td className="px-5 py-4">{user.email ?? "N/A"}</td>
             <td className="whitespace-nowrap px-5 py-4"><time dateTime={user.createdAt.toISOString()}>{user.createdAt.toISOString().slice(0, 10)}</time></td>
           </tr>)}
           {!users.length ? <tr><td colSpan={4} className="p-10 text-center text-neutral-500">{query ? "No users match your search." : "No users yet."}</td></tr> : null}

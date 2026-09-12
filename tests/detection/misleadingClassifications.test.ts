@@ -7,7 +7,7 @@ const NOW = new Date("2026-09-04T00:00:00Z");
 
 describe("misleading classification guards", () => {
   it("does NOT flag a quiet-but-finished project as needing a maintainer", () => {
-    // No commits for 18 months, but no open issues and a stable release history —
+    // No commits for 18 months, but no open issues and a stable release history:
     // this is a mature, complete project, not a struggling one.
     const raw = makeRawRepository({
       pushedAt: new Date("2025-03-01").toISOString(),

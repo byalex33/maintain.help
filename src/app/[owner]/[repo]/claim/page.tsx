@@ -1,3 +1,4 @@
+import { PageIntro } from "@/components/layout/page-intro";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
@@ -24,7 +25,7 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
 
   const repository = await getRepositoryDetail(owner, repo);
   if (!repository) notFound();
-  if (repository.isLocked) return <div className="mx-auto max-w-lg px-4 py-12"><h1 className="text-xl font-semibold">Repository locked</h1><p className="mt-2 text-neutral-500">A moderator has paused changes to this listing.</p></div>;
+  if (repository.isLocked) return <div className="page-shell"><h1 className="text-xl font-semibold">Repository locked</h1><p className="mt-2 text-neutral-500">A moderator has paused changes to this listing.</p></div>;
 
   const username = session.user.githubLogin;
   const accessToken = username ? await getGitHubAccessToken(session.user.id) : null;
@@ -36,10 +37,7 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Claim {repository.fullName}</h1>
-      <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-        Once your GitHub access is verified, your input here overrides our inferred status.
-      </p>
+      <PageIntro eyebrow="Your project, your voice" title={`Claim ${repository.fullName}`} description="Verify your GitHub access and tell contributors what your project needs. Your input takes priority over our inferred status." />
 
       {!permission.eligible ? (
         <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
@@ -51,7 +49,7 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
           )}
         </div>
       ) : (
-        <div className="mt-6">
+        <div className="form-panel max-w-2xl">
           <ClaimForm
             action={boundAction}
             defaultStatus={existingRequest?.status}

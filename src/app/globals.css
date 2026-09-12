@@ -2,12 +2,12 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --background: #fcfbf8;
+  --foreground: #20201e;
   --muted: #f5f5f5;
-  --muted-foreground: #737373;
+  --muted-foreground: #686864;
   --border: #e5e5e5;
-  --card: var(--background);
+  --card: #ffffff;
   --card-foreground: var(--foreground);
   --popover: var(--background);
   --popover-foreground: var(--foreground);
@@ -66,7 +66,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #121211;
+    --card: #191918;
     --foreground: #f5f5f5;
     --muted: #171717;
     --muted-foreground: #a3a3a3;
@@ -96,6 +97,20 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+@layer components {
+  .page-shell { @apply mx-auto w-full max-w-6xl px-5 py-10 md:px-8 md:py-14; }
+  .page-intro { @apply mb-10 flex flex-wrap items-end justify-between gap-6 border-b border-border pb-10; }
+  .eyebrow { @apply font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground; }
+  .display-title { @apply font-sans text-4xl font-semibold leading-[1.1] tracking-tight text-balance md:text-5xl; }
+  .section-title { @apply font-sans text-2xl font-semibold leading-tight tracking-tight; }
+  .form-panel { @apply rounded-2xl border border-border bg-card p-6 md:p-8; }
+  .filter-panel { @apply self-start rounded-xl border border-border bg-card p-5; }
+  .empty-panel { @apply flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border px-6 py-12 text-center text-sm leading-7 text-muted-foreground; }
+  .repo-sidebar > [data-slot="card"] { @apply rounded-xl border-border bg-transparent shadow-none; }
+}
+
+html { scroll-padding-top: 7rem; }
+
 ::selection {
   background: var(--status-actively-asking);
   color: white;
@@ -107,42 +122,13 @@ body {
   inherits: false;
 }
 
-.featured-repository {
-  --featured-angle: 0deg;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  border: 1.5px solid transparent;
-  border-radius: 1.5rem;
+.featured-card {
+  border: 2px solid transparent;
   background:
     linear-gradient(var(--background), var(--background)) padding-box,
-    conic-gradient(from var(--featured-angle), #a78bfa44 0%, #a78bfa44 55%, #a78bfa 70%, #67e8f9 80%, #ffffff 85%, #c4b5fd 90%, #a78bfa44 100%) border-box;
-  box-shadow: 0 12px 60px -24px #8b5cf64d, 0 0 24px -12px #67e8f966;
+    conic-gradient(from var(--featured-angle), #b8860b66 0% 55%, #d4af37 70%, #fbbf24 80%, #fff4c2 85%, #eab308 90%, #b8860b66 100%) border-box;
+  box-shadow: 0 0 20px -10px #d4af3766;
   animation: featured-orbit 8s linear infinite;
-  transition: transform 250ms ease, box-shadow 250ms ease;
-}
-
-.featured-repository::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 100% 0%, #a78bfa20, transparent 65%), radial-gradient(ellipse at 0% 100%, #67e8f90d, transparent 60%);
-}
-
-.featured-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.12;
-  background-image: linear-gradient(#a78bfa 1px, transparent 1px), linear-gradient(90deg, #a78bfa 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse at top right, black, transparent 65%);
-}
-
-.featured-repository:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 70px -24px #8b5cf666, 0 0 30px -10px #67e8f944;
 }
 
 @keyframes featured-orbit {
@@ -150,6 +136,5 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .featured-repository { animation: none; transition: none; }
-  .featured-repository:hover { transform: none; }
+  .featured-card { animation: none; }
 }

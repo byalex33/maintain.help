@@ -4,7 +4,7 @@ import { Octokit } from "@octokit/rest";
 let cached: Octokit | null = null;
 
 /**
- * Server-only Octokit instance. Never expose GITHUB_ANALYSIS_TOKEN to the client —
+ * Server-only Octokit instance. Never expose GITHUB_ANALYSIS_TOKEN to the client:
  * all authenticated GitHub calls must be made from server components, route handlers,
  * or background jobs.
  */

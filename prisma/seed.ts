@@ -89,7 +89,7 @@ async function main() {
     await db.repositoryMetricSnapshot.deleteMany({ where: { repositoryId: repository.id } });
 
     // Backdated snapshots so the activity charts have a trend to show, not just one point.
-    // Interpolated from the current metrics — a real ingestion pipeline would instead
+    // Interpolated from the current metrics; a real ingestion pipeline would instead
     // accumulate one real snapshot per analysis run over time.
     const trend = analysis.capacityPressureScore / 100;
     const snapshotOffsetsDays = [90, 60, 30, 0];
