@@ -2,6 +2,25 @@
 
 import { auth, clerkClient, reverificationError } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { revalidatePath } from "next/cache";
+
+export async function updateProfile(_previous: { error?: string; success?: string }, formData: FormData) {
+  const { userId } = await auth();
+  if (!userId) return { error: "Sign in before updating your profile." };
+  const value = formData.get("name");
+  if (typeof value !== "string" || !value.trim() || value.trim().length > 100) {
+    return { error: "Enter a display name between 1 and 100 characters." };
+  }
+  try {
+    const client = await clerkClient();
+    // auth() synchronizes this name into our local profile on the next render.
+    await client.users.updateUser(userId, { firstName: value.trim(), lastName: "" });
+  } catch {
+    return { error: "Your profile could not be saved. Please try again." };
+  }
+  revalidatePath("/", "layout");
+  return { success: "Profile saved." };
+}
 
 export async function deleteAccount(confirmation: string) {
   const { userId, has } = await auth();
