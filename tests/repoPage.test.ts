@@ -6,7 +6,8 @@ vi.stubGlobal("React", React);
 const mocks = vi.hoisted(() => ({ repository: vi.fn(), auth: vi.fn(), saved: vi.fn() }));
 vi.mock("@/lib/queries/repositories", () => ({ getRepositoryDetail: mocks.repository }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminLogin: () => false }));
-vi.mock("@/lib/db", () => ({ db: { savedRepository: { findUnique: mocks.saved }, repositoryMaintainer: { findFirst: async () => null } } }));
+vi.mock("@/lib/db", () => ({ db: { repositoryLike: { findUnique: async () => null }, savedRepository: { findUnique: mocks.saved }, repositoryMaintainer: { findFirst: async () => null } } }));
+vi.mock("@/app/notifications/actions", () => ({ setRepositoryLiked: vi.fn() }));
 vi.mock("@/app/admin/actions", () => ({ resolveReport: vi.fn(), moderateRepository: vi.fn() }));
 vi.mock("@/app/saved/actions", () => ({ setRepositorySaved: vi.fn() }));
 vi.mock("@/app/[owner]/[repo]/feedback/actions", () => ({ submitRepositoryFeedback: vi.fn() }));
@@ -31,6 +32,7 @@ it("renders the repo overview, evidence and saved control, with honest empty sta
   const render = async () => renderToStaticMarkup(await RepoPage({ params: Promise.resolve({ owner: "brightloop", repo: "queuelight" }), searchParams: Promise.resolve({}) }));
   const html = await render();
   expect(html).toContain('aria-pressed="true"');
+  expect(html).toContain("Likes notify verified maintainers");
   expect(html).toContain('href="#evidence"');
   expect(html).toContain('id="evidence"');
   expect(html).toContain("Maintainer seeking a successor");

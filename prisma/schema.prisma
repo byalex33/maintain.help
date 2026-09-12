@@ -31,6 +31,8 @@ model User {
   maintainerRequests    MaintainerRequest[]
   repositoryMaintainers RepositoryMaintainer[]
   savedRepositories     SavedRepository[]
+  repositoryLikes       RepositoryLike[]
+  notifications         RepositoryLikeNotification[]
   classificationReviews RepositoryClassificationReview[]
   repositoryFeedback    RepositoryFeedback[]
   submittedRepositories Repository[]                     @relation("SubmittedRepositories")
@@ -228,6 +230,7 @@ model Repository {
   maintainers           RepositoryMaintainer[]
   maintainerRequests    MaintainerRequest[]
   savedBy               SavedRepository[]
+  likedBy               RepositoryLike[]
   statusHistory         RepositoryStatus[]
   classificationReviews RepositoryClassificationReview[]
   feedback              RepositoryFeedback[]
@@ -408,6 +411,32 @@ model SavedRepository {
   createdAt DateTime @default(now())
 
   @@unique([userId, repositoryId])
+}
+
+model RepositoryLike {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  liked        Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  notifications RepositoryLikeNotification[]
+
+  @@unique([userId, repositoryId])
+}
+
+model RepositoryLikeNotification {
+  id          String         @id @default(cuid())
+  recipientId String
+  recipient   User           @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  likeId      String
+  like        RepositoryLike @relation(fields: [likeId], references: [id], onDelete: Cascade)
+  readAt      DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@unique([recipientId, likeId])
+  @@index([recipientId, createdAt])
 }
 
 model RepositoryClassificationReview {

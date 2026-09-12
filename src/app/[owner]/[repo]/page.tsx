@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Star, GitFork, ArrowUpRight, ArrowLeft, Code2, Activity, Circle, Bookmark, ShieldCheck, Flag } from "lucide-react";
+import { Star, GitFork, ArrowUpRight, ArrowLeft, Code2, Activity, Circle, Bookmark, Heart, ShieldCheck, Flag } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { db } from "@/lib/db";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { setRepositoryLiked } from "@/app/notifications/actions";
 import { setRepositorySaved } from "@/app/saved/actions";
 import { submitRepositoryFeedback } from "./feedback/actions";
 import { STATUS_DESCRIPTION, HELP_CATEGORY_LABEL, HELP_CATEGORY_ICON, formatStars } from "@/lib/display";
@@ -72,6 +73,9 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
   const saved = session?.user ? Boolean(await db.savedRepository.findUnique({
     where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } }, select: { id: true },
   })) : false;
+  const liked = session?.user ? Boolean(await db.repositoryLike.findUnique({
+    where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } }, select: { liked: true },
+  }).then((like) => like?.liked)) : false;
   const recordedMaintainer = session?.user ? Boolean(await db.repositoryMaintainer.findFirst({
     where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { not: null } },
     select: { id: true },
@@ -109,6 +113,9 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             View on GitHub
             <ArrowUpRight aria-hidden="true" className="size-4" />
           </a>
+          {session?.user && repository.isIndexed && repository.availability === "AVAILABLE" ? <form action={setRepositoryLiked.bind(null, repository.id, !liked)}>
+            <Button type="submit" variant="outline" className="h-11" aria-pressed={liked} title="Likes notify verified maintainers"><Heart aria-hidden="true" className={liked ? "fill-current text-rose-500" : ""} />{liked ? "Liked" : "Like"}</Button>
+          </form> : null}
           {session?.user && repository.isIndexed ? <form action={setRepositorySaved.bind(null, repository.id, !saved)}>
             <Button type="submit" variant="outline" className="h-11" aria-pressed={saved}><Bookmark aria-hidden="true" className={saved ? "fill-current" : ""} />{saved ? "Saved" : "Save"}</Button>
           </form> : null}

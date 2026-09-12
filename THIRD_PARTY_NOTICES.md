@@ -12,6 +12,8 @@ adapts the Search Input's clear control and styling. The `depth` variant in
 `src/components/ui/button.tsx` adapts Depth Outline for our existing button API.
 `src/components/auth/sign-in-toast.tsx` adapts System Alert to show a dismissible
 open-source invitation after sign-in, with a link to our GitHub repository.
+`src/components/layout/notifications.tsx` adapts Notification and Deploy
+Notification for repository likes, using our existing theme and native disclosure.
 
 The public-page redesign also follows Opensource UI's Craft Bench design guide:
 Geist typography, neutral surfaces, and hairline dividers. Profile and resource layouts draw on the Contact Profile and
@@ -25,6 +27,8 @@ Source: https://github.com/bidyut10/opensourceui
 - `components/inputs/search-input.tsx`
 - `components/buttons/depth-outline-button.tsx`
 - `components/notifications/system-alert-banner.tsx`
+- `components/dropdowns/notification-dropdown.tsx`
+- `components/notifications/deploy-notification-banner.tsx`
 - `components/profile/contact-profile-card.tsx`
 - `components/resources/resource-links-panel.tsx`
 

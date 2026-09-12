@@ -4,6 +4,9 @@ import { expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminLogin: () => false }));
+vi.mock("@/lib/queries/notifications", () => ({ getNotifications: async () => [] }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/app/notifications/actions", () => ({ markNotificationsRead: vi.fn() }));
 vi.mock("@clerk/nextjs", () => ({ SignOutButton: ({ children }: { children: ReactNode }) => children }));
 import { SiteHeader } from "@/components/layout/header";
 
