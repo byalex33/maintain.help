@@ -20,3 +20,9 @@ Validation: 233 tests passed; three existing PostgreSQL concurrency tests skippe
 Dependency overrides retain Prisma 7.10.0 and install deepmerge-ts 8.0.2 and mysql2 3.24.4. Both `npm audit` and `npm audit --omit=dev` report zero vulnerabilities. The deepmerge major override was checked by loading Prisma config, generating the client, applying all nine migrations and seeding a fresh local database. See [deepmerge-ts 8.0.2](https://github.com/RebeccaStevens/deepmerge-ts/releases/tag/v8.0.2) and [the advisory](https://github.com/advisories/GHSA-ggr8-5vv4-36mx). Remove the overrides when Prisma ships patched ranges.
 
 Analysis version advances to 4 for the alias evidence change. Previously persisted evidence links update when repositories are reanalysed; this PR does not run production reanalysis.
+
+## Follow-up code review
+
+An independent review and direct Prisma/PostgreSQL reproduction found that case-insensitive `equals` uses `ILIKE`: `AuditOwner/audit_3` incorrectly matched `AuditOwner/audit-3`. The shared identity filter now escapes underscores, percent signs and backslashes. All ingestion identity lookups use the same filter, including retry updates and replacement detection, so the fix also protects writes. A rollback-only database regression verifies case-insensitive matching without wildcard collisions.
+
+Updated validation: 234 tests passed in the default suite (four environment-gated integration tests skipped); the new PostgreSQL identity regression also passed separately on the dedicated local test database. Type checking and focused ESLint passed. No other actionable defects were found in the PR review.
