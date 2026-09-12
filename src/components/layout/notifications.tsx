@@ -54,12 +54,12 @@ export function Notifications({ items }: { items: Notification[] }) {
 
   return <>
     {/* Adapted from Opensource UI Notification and Deploy Notification; see THIRD_PARTY_NOTICES.md. */}
-    <details ref={menu} className="relative">
+    <details ref={menu} className="md:relative">
       <summary aria-label={`Notifications, ${unread.length}${unread.length === 20 ? "+" : ""} unread`} className="relative flex size-9 cursor-pointer list-none items-center justify-center rounded-md border border-border bg-background hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
         <Bell aria-hidden="true" className="size-4" />
         {unread.length > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{unread.length > 9 ? "9+" : unread.length}</span>}
       </summary>
-      <section aria-label="Notifications" className="absolute -right-12 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-border bg-muted p-2 shadow-lg md:right-0">
+      <section aria-label="Notifications" className="absolute inset-x-5 top-full z-40 mt-2 rounded-xl border border-border bg-muted p-2 shadow-lg md:left-auto md:right-0 md:w-80">
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
           <h2 className="text-sm font-semibold">Notifications</h2>
           {unread.length > 0 && <Button variant="ghost" size="sm" disabled={pending} onClick={() => markRead(unread.map((item) => item.id))}>Mark shown as read</Button>}
