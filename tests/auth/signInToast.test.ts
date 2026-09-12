@@ -70,16 +70,24 @@ it("does not announce an existing session or an unfinished sign-in", () => {
   expect(mocks.setVisible).not.toHaveBeenCalled();
 });
 
-it("renders an accessible dismissal and expires after six seconds", () => {
+it("keeps the open-source invitation available until dismissed or opened", () => {
   mocks.visible = true;
   mocks.auth.isSignedIn = true;
   const { html } = render();
   expect(html).toContain('aria-live="polite"');
   expect(html).toContain('aria-label="Dismiss notification"');
-  vi.advanceTimersByTime(5999);
+  expect(html).toContain('data-slot="system-alert-banner"');
+  expect(html).toContain('We’re open source, give us a ⭐ to help us grow!');
+  expect(html).toContain('href="https://github.com/byalex33/maintain.help"');
+  expect(html).toContain('rel="noopener noreferrer"');
+  vi.advanceTimersByTime(60_000);
   expect(mocks.setVisible).not.toHaveBeenCalled();
-  vi.advanceTimersByTime(1);
-  expect(mocks.setVisible).toHaveBeenCalledWith(false);
+  const alert = SignInToast().props.children;
+  alert.props.children[3].props.onClick();
+  expect(mocks.setVisible).toHaveBeenLastCalledWith(false);
+  mocks.setVisible.mockClear();
+  alert.props.children[4].props.onClick();
+  expect(mocks.setVisible).toHaveBeenLastCalledWith(false);
 });
 
 it("does not break sign-in when browser storage is disabled", () => {

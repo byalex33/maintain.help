@@ -10,6 +10,8 @@ theme and static server markup, with no additional dependencies.
 our repository data and navigation. `src/components/home/hero-search.tsx`
 adapts the Search Input's clear control and styling. The `depth` variant in
 `src/components/ui/button.tsx` adapts Depth Outline for our existing button API.
+`src/components/auth/sign-in-toast.tsx` adapts System Alert to show a dismissible
+open-source invitation after sign-in, with a link to our GitHub repository.
 
 Source: https://github.com/bidyut10/opensourceui
 
@@ -18,6 +20,7 @@ Source: https://github.com/bidyut10/opensourceui
 - `components/socials/github-repo-card.tsx`
 - `components/inputs/search-input.tsx`
 - `components/buttons/depth-outline-button.tsx`
+- `components/notifications/system-alert-banner.tsx`
 
 MIT License
 
