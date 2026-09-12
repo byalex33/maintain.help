@@ -22,7 +22,7 @@ beforeEach(() => {
 it("rejects anonymous votes and removals before accessing repositories", async () => {
   mocks.auth.mockResolvedValue(null);
   for (const desired of [true, false]) {
-    expect(await setRepositoryUpvoted("repo", desired)).toHaveProperty("error", "Sign in to upvote repositories.");
+    expect(await setRepositoryUpvoted("repo", desired)).toHaveProperty("error", "Sign in to like repositories.");
   }
   expect(mocks.repository).not.toHaveBeenCalled();
   expect(mocks.create).not.toHaveBeenCalled();

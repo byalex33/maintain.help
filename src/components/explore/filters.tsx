@@ -26,7 +26,7 @@ const STATUS_OPTIONS: { value: HelpStatus; label: string }[] = [
 
 const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "recommended", label: "Recommended" },
-  { value: "upvotes", label: "Most upvotes" },
+  { value: "upvotes", label: "Most liked" },
   { value: "stars", label: "Most stars" },
   { value: "recent", label: "Recently updated" },
   { value: "most-help-needed", label: "Most help needed" },

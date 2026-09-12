@@ -6,9 +6,9 @@ import { db } from "@/lib/db";
 
 export async function setRepositoryUpvoted(repositoryId: string, upvoted: boolean) {
   const session = await auth();
-  if (!session?.user) return { error: "Sign in to upvote repositories." };
+  if (!session?.user) return { error: "Sign in to like repositories." };
   if (typeof repositoryId !== "string" || !repositoryId || typeof upvoted !== "boolean") {
-    return { error: "Invalid upvote request." };
+    return { error: "Invalid like request." };
   }
   const repository = await db.$transaction(async (tx) => {
     // Hold eligibility stable until the vote commits. Moderation and ingestion

@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), user: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
+vi.mock("@/components/repo/repo-like", () => ({ RepoLike: () => null }));
 vi.mock("@/lib/db", () => ({ db: { user: { findUniqueOrThrow: mocks.user } } }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(url); } }));
 
