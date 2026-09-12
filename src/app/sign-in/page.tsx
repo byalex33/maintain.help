@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string | string[] }>;
 }) {
   const { callbackUrl } = await searchParams;
   // Accept only local return paths, never protocol-relative/external redirects.
-  const returnTo = callbackUrl?.startsWith("/") && !/[\\\s]/.test(callbackUrl) && !callbackUrl.startsWith("//") ? callbackUrl : "/";
+  const returnTo = typeof callbackUrl === "string" && callbackUrl.startsWith("/") && !/[\\\s]/.test(callbackUrl) && !callbackUrl.startsWith("//") ? callbackUrl : "/";
   const { userId } = await clerkAuth();
   if (userId && await auth()) redirect(returnTo);
 

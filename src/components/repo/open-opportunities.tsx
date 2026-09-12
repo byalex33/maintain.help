@@ -3,20 +3,20 @@ import { ExternalLink } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { GitHubIssue } from "@/generated/prisma/client";
+import { HELP_WANTED_LABEL, GOOD_FIRST_ISSUE_LABEL } from "@/lib/github/labels";
 
-const PRIORITY_LABELS = ["good first issue", "help wanted", "documentation", "testing"];
+const PRIORITY_LABELS = [GOOD_FIRST_ISSUE_LABEL, HELP_WANTED_LABEL, /documentation/i, /testing/i];
 
 function priorityRank(labels: string[]): number {
-  const lower = labels.map((l) => l.toLowerCase());
   for (let i = 0; i < PRIORITY_LABELS.length; i++) {
-    if (lower.some((l) => l.includes(PRIORITY_LABELS[i]))) return i;
+    if (labels.some((l) => PRIORITY_LABELS[i].test(l))) return i;
   }
   return PRIORITY_LABELS.length;
 }
 
 export function OpenOpportunities({ issues }: { issues: GitHubIssue[] }) {
   const relevant = issues
-    .filter((i) => !i.isPullRequest && priorityRank(i.labels) < PRIORITY_LABELS.length)
+    .filter((i) => i.state === "open" && !i.isPullRequest && priorityRank(i.labels) < PRIORITY_LABELS.length)
     .sort((a, b) => priorityRank(a.labels) - priorityRank(b.labels))
     .slice(0, 12);
 

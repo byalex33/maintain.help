@@ -8,7 +8,7 @@ import { nextAnalysisDate } from "@/lib/analysisSchedule";
 import { GitHubNotFoundError, GitHubPrivateRepositoryError, GitHubRateLimitError } from "@/lib/github/client";
 import { RepositoryAvailability } from "@/generated/prisma/enums";
 import type { RawRepositoryData } from "@/lib/github/types";
-import { repositoryCanonicalKey } from "@/lib/repositoryIdentity";
+import { repositoryCanonicalKey, repositoryNameFilter } from "@/lib/repositoryIdentity";
 import { randomUUID } from "node:crypto";
 import type { Repository } from "@/generated/prisma/client";
 
@@ -41,7 +41,7 @@ async function cachedRepository(listing: Repository, submittedById?: string) {
  * underlying evidence and metrics.
  */
 export async function ingestRepository(owner: string, repo: string, options: { submittedById?: string } = {}) {
-  const listing = await db.repository.findFirst({ where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } } });
+  const listing = await db.repository.findFirst({ where: repositoryNameFilter(owner, repo) });
   if (listing && (!listing.isIndexed || listing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
   if (listing?.analysisError && listing.nextAnalysisAt && listing.nextAnalysisAt > new Date()) {
     throw new RepositoryAnalysisBusyError("This repository is waiting for its next analysis retry.");
@@ -62,7 +62,7 @@ export async function ingestRepository(owner: string, repo: string, options: { s
 
   try {
     // Another worker may have completed between our initial read and lease acquisition.
-    const latest = await db.repository.findFirst({ where: { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } } });
+    const latest = await db.repository.findFirst({ where: repositoryNameFilter(owner, repo) });
     if (latest && (!latest.isIndexed || latest.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
     if (latest?.lastAnalyzedAt && !latest.isFixture && latest.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(latest, options.submittedById);
     const raw = await fetchRepositoryData(owner, repo);
@@ -78,7 +78,7 @@ export async function ingestRepository(owner: string, repo: string, options: { s
       `;
       if (!owned.length) return;
       await tx.repository.updateMany({
-        where: { ...(error instanceof RepositoryIdentityChangedError ? { id: error.repositoryId } : { fullName: { equals: `${owner}/${repo}`, mode: "insensitive" } }), isIndexed: true, isLocked: false },
+        where: { ...(error instanceof RepositoryIdentityChangedError ? { id: error.repositoryId } : repositoryNameFilter(owner, repo)), isIndexed: true, isLocked: false },
         data: {
           analysisError: message,
           nextAnalysisAt,
@@ -105,7 +105,7 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
     // Claims take this same row lock before changing requests and derived classifications.
     await tx.$queryRaw`SELECT id FROM "Repository" WHERE "githubId" = ${BigInt(raw.githubId)} OR LOWER("fullName") = ${raw.fullName.toLowerCase()} ORDER BY id FOR UPDATE`;
     const matches = await tx.repository.findMany({
-      where: { OR: [{ githubId: BigInt(raw.githubId) }, { fullName: { equals: raw.fullName, mode: "insensitive" } }] },
+      where: { OR: [{ githubId: BigInt(raw.githubId) }, repositoryNameFilter(raw.owner, raw.name)] },
       include: { maintainerRequests: { where: { isActive: true }, orderBy: { createdAt: "desc" }, take: 1 } },
     });
     const replaced = matches.find((row) => row.githubId !== BigInt(raw.githubId));

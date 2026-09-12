@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound, redirect, permanentRedirect } from "next/navigation";
 
 import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { checkClaimPermission } from "@/lib/github/permissions";
@@ -24,6 +24,7 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
 
   const repository = await getRepositoryDetail(owner, repo);
   if (!repository) notFound();
+  if (owner !== repository.owner || repo !== repository.name) permanentRedirect(`/${repository.owner}/${repository.name}/claim`);
   if (repository.isLocked) return <div className="mx-auto max-w-lg px-4 py-12"><h1 className="text-xl font-semibold">Repository locked</h1><p className="mt-2 text-neutral-500">A moderator has paused changes to this listing.</p></div>;
 
   const username = session.user.githubLogin;

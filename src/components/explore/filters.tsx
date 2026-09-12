@@ -41,6 +41,7 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
   const set = useCallback(
     (key: string, value: string | null) => {
       const params = new URLSearchParams(searchParams.toString());
+      if ((params.get(key) || null) === value) return;
       if (value) params.set(key, value);
       else params.delete(key);
       params.delete("page");
@@ -65,6 +66,7 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       <div>
         <Label htmlFor="explore-search" className="mb-1.5 text-xs text-neutral-500">Search</Label>
         <Input
+          key={searchParams.get("q") ?? ""}
           id="explore-search"
           defaultValue={searchParams.get("q") ?? ""}
           placeholder="name, owner, language..."
@@ -170,6 +172,7 @@ export function ExploreFilters({ languages }: { languages: string[] }) {
       </div>
 
       <div className="flex flex-col gap-3 border-t border-neutral-100 pt-4 dark:border-neutral-900">
+        <p className="text-xs text-neutral-500">Status selections match any selected status.</p>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={searchParams.get("beginnerFriendly") === "1"} onCheckedChange={() => toggle("beginnerFriendly")} />
           Beginner friendly

@@ -40,3 +40,9 @@ it("keeps recovery redirects local", async () => {
   expect(html).toContain("/sign-in?callbackUrl=%2F");
   expect(html).not.toContain("example.com");
 });
+
+
+it("ignores repeated callback parameters instead of crashing or choosing an unsafe destination", async () => {
+  mocks.auth.mockResolvedValue({ user: { id: "local-user" } });
+  await expect(SignInPage({ searchParams: Promise.resolve({ callbackUrl: ["/saved", "//example.com"] }) })).rejects.toThrow("redirect:/");
+});

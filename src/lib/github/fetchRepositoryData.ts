@@ -2,6 +2,7 @@ import "server-only";
 import { graphql } from "@octokit/graphql";
 import { getOctokit, withGitHubErrors, GitHubNotFoundError, GitHubPrivateRepositoryError } from "./client";
 import { isBotAccount } from "./bots";
+import { HELP_WANTED_LABEL, GOOD_FIRST_ISSUE_LABEL, issueLabelQuery } from "./labels";
 import type {
   RawRepositoryData,
   RawIssue,
@@ -217,8 +218,6 @@ async function fetchIssues(owner: string, repo: string, state: "open" | "closed"
 
 async function fetchIssueStatistics(owner: string, repo: string, labels: string[]): Promise<NonNullable<RawRepositoryData["issueStatistics"]>> {
   const since = new Date(Date.now() - 90 * 86_400_000).toISOString();
-  const labelFilter = (pattern: RegExp, canonical: string) =>
-    `label:${[...new Set([canonical, ...labels.filter((label) => pattern.test(label))])].map((label) => JSON.stringify(label)).join(",")}`;
   const queries = {
     openIssues: "is:issue is:open",
     openPullRequests: "is:pr is:open",
@@ -226,8 +225,8 @@ async function fetchIssueStatistics(owner: string, repo: string, labels: string[
     closedIssuesLast90d: `is:issue is:closed closed:>=${since}`,
     newPullRequestsLast90d: `is:pr created:>=${since}`,
     closedPullRequestsLast90d: `is:pr is:closed closed:>=${since}`,
-    helpWantedIssueCount: `is:issue is:open ${labelFilter(/help.?wanted/i, "help wanted")}`,
-    goodFirstIssueCount: `is:issue is:open ${labelFilter(/good.?first.?issue|beginner.?friendly|first-timers?-only/i, "good first issue")}`,
+    helpWantedIssueCount: issueLabelQuery(labels, HELP_WANTED_LABEL, "help wanted"),
+    goodFirstIssueCount: issueLabelQuery(labels, GOOD_FIRST_ISSUE_LABEL, "good first issue"),
   };
   const entries = Object.entries(queries).map(([key, query]) => [key, `repo:${owner}/${repo} ${query}`] as const);
   const token = process.env.GITHUB_ANALYSIS_TOKEN;

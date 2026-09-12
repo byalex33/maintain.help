@@ -80,9 +80,9 @@ export default async function ExplorePage({
 
           {result.totalPages > 1 ? (
             <div className="mt-8 flex items-center justify-center gap-2">
-              {page > 1 ? (
+              {result.page > 1 ? (
                 <Button asChild variant="outline" size="sm">
-                  <Link href={pageHref(sp, page - 1)}>Previous</Link>
+                  <Link href={pageHref(sp, result.page - 1)}>Previous</Link>
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" disabled>
@@ -92,9 +92,9 @@ export default async function ExplorePage({
               <span className="px-2 text-sm text-neutral-500">
                 Page {result.page} of {result.totalPages}
               </span>
-              {page < result.totalPages ? (
+              {result.page < result.totalPages ? (
                 <Button asChild variant="outline" size="sm">
-                  <Link href={pageHref(sp, page + 1)}>Next</Link>
+                  <Link href={pageHref(sp, result.page + 1)}>Next</Link>
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" disabled>

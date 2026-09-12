@@ -1,6 +1,7 @@
 import type { RawRepositoryData } from "../github/types";
 import { median, daysBetween, hoursBetween } from "./statUtils";
 import { isBotAccount } from "../github/bots";
+import { HELP_WANTED_LABEL, GOOD_FIRST_ISSUE_LABEL } from "../github/labels";
 
 export interface ComputedMetrics {
   issuesSampled?: boolean;
@@ -31,8 +32,6 @@ export interface ComputedMetrics {
   staleDependencyOrSecurityPrCount: number;
 }
 
-const HELP_WANTED_LABEL = /help.?wanted/i;
-const GOOD_FIRST_ISSUE_LABEL = /good.?first.?issue|beginner.?friendly|first-timers?-only/i;
 const DEPENDENCY_OR_SECURITY_LABEL = /security|dependenc/i;
 
 export function computeMetrics(raw: RawRepositoryData, now: Date = new Date()): ComputedMetrics {

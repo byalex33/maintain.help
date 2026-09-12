@@ -10,7 +10,7 @@ vi.mock("@/lib/github/permissions", () => ({ checkClaimPermission: mocks.permiss
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: () => { throw new Error("redirect"); } }));
 vi.mock("@/lib/db", () => ({ db: {
-  repository: { findUnique: mocks.find },
+  repository: { findFirst: mocks.find },
   $transaction: async (callback: (tx: unknown) => unknown) => callback({
     $queryRaw: mocks.lock,
     repository: { update: mocks.update }, repositoryStatus: { create: mocks.history },
@@ -27,7 +27,7 @@ beforeEach(() => {
   mocks.auth.mockResolvedValue({ user: { id: "user", githubId: "42", githubLogin: "owner" } });
   mocks.token.mockResolvedValue("user-token");
   mocks.permission.mockResolvedValue({ eligible: true, permission: "admin" });
-  mocks.find.mockResolvedValue({ id: "repository", githubId: BigInt(123), isIndexed: true, isLocked: false, status: "HEALTHY", statusConfidence: "LOW", statusVerified: false });
+  mocks.find.mockResolvedValue({ id: "repository", owner: "owner", name: "repo", githubId: BigInt(123), isIndexed: true, isLocked: false, status: "HEALTHY", statusConfidence: "LOW", statusVerified: false });
   mocks.categories.mockResolvedValue([{ category: "CODE", verified: false }]);
 });
 

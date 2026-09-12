@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { RepositoryFeedbackType } from "@/generated/prisma/enums";
 import { feedbackIsTrusted } from "@/lib/feedback";
+import { repositoryNameFilter } from "@/lib/repositoryIdentity";
 
 export async function submitRepositoryFeedback(owner: string, repo: string, formData: FormData) {
   const session = await auth();
@@ -16,7 +17,7 @@ export async function submitRepositoryFeedback(owner: string, repo: string, form
   if (rawNotes !== null && typeof rawNotes !== "string") return;
   const notes = (rawNotes ?? "").trim().slice(0, 2000);
   if (type === RepositoryFeedbackType.REPORT && !notes) return;
-  const repository = await db.repository.findUnique({ where: { fullName: `${owner}/${repo}`, isIndexed: true }, select: { id: true } });
+  const repository = await db.repository.findFirst({ where: { ...repositoryNameFilter(owner, repo), isIndexed: true }, select: { id: true, owner: true, name: true } });
   if (!repository) return;
   const maintainer = await db.repositoryMaintainer.findFirst({
     where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { not: null } },
@@ -31,7 +32,7 @@ export async function submitRepositoryFeedback(owner: string, repo: string, form
     notes: notes || null,
     trusted,
   } });
-  revalidatePath(`/${owner}/${repo}`);
+  revalidatePath(`/${repository.owner}/${repository.name}`);
   revalidatePath("/admin");
-  if (type === RepositoryFeedbackType.REPORT) redirect(`/${owner}/${repo}?report=sent#report`);
+  if (type === RepositoryFeedbackType.REPORT) redirect(`/${repository.owner}/${repository.name}?report=sent#report`);
 }

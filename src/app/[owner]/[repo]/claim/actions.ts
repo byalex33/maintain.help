@@ -9,6 +9,7 @@ import { checkClaimPermission } from "@/lib/github/permissions";
 import { applyMaintainerOverride } from "@/lib/detection/status";
 import { applyMaintainerCategoryOverride } from "@/lib/detection/categories";
 import { WantedHelpStatus } from "@/generated/prisma/enums";
+import { repositoryNameFilter } from "@/lib/repositoryIdentity";
 
 export interface ClaimFormState {
   error: string | null;
@@ -35,7 +36,7 @@ export async function submitMaintainerRequest(
     return { error: "Your GitHub session has expired. Please sign in again." };
   }
 
-  const repository = await db.repository.findUnique({ where: { fullName: `${owner}/${repo}` } });
+  const repository = await db.repository.findFirst({ where: repositoryNameFilter(owner, repo) });
   if (!repository || !repository.isIndexed || repository.isLocked) {
     return { error: "This repository is unavailable or locked by a moderator." };
   }
@@ -148,6 +149,6 @@ export async function submitMaintainerRequest(
     return { error: "The claim could not be saved. The repository may have been locked or removed. Please try again." };
   }
 
-  revalidatePath(`/${owner}/${repo}`);
-  redirect(`/${owner}/${repo}`);
+  revalidatePath(`/${repository.owner}/${repository.name}`);
+  redirect(`/${repository.owner}/${repository.name}`);
 }
