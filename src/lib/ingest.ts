@@ -9,6 +9,7 @@ import { GitHubNotFoundError, GitHubPrivateRepositoryError, GitHubRateLimitError
 import { RepositoryAvailability } from "@/generated/prisma/enums";
 import type { RawRepositoryData } from "@/lib/github/types";
 import { repositoryCanonicalKey, repositoryNameFilter } from "@/lib/repositoryIdentity";
+import { claimValidSince } from "@/lib/claims";
 import { randomUUID } from "node:crypto";
 import type { Repository } from "@/generated/prisma/client";
 
@@ -104,9 +105,11 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
     if (!lease.length) throw new RepositoryAnalysisBusyError("The analysis timed out. Please try again.");
     // Claims take this same row lock before changing requests and derived classifications.
     await tx.$queryRaw`SELECT id FROM "Repository" WHERE "githubId" = ${BigInt(raw.githubId)} OR LOWER("fullName") = ${raw.fullName.toLowerCase()} ORDER BY id FOR UPDATE`;
+    const now = new Date();
+    const claimCutoff = claimValidSince(now);
     const matches = await tx.repository.findMany({
       where: { OR: [{ githubId: BigInt(raw.githubId) }, repositoryNameFilter(raw.owner, raw.name)] },
-      include: { maintainerRequests: { where: { isActive: true }, orderBy: { createdAt: "desc" }, take: 1 } },
+      include: { maintainerRequests: { where: { isActive: true, createdAt: { gte: claimCutoff } }, orderBy: { createdAt: "desc" }, take: 1 } },
     });
     const replaced = matches.find((row) => row.githubId !== BigInt(raw.githubId));
     if (replaced) throw new RepositoryIdentityChangedError(replaced.id);
@@ -114,12 +117,18 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
     // The numeric ID also protects renamed repositories from being re-imported.
     if (existing && (!existing.isIndexed || existing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
 
+    if (existing) {
+      // Unconfirmed claims expire so a maintainer who lost access stops overriding inference.
+      await tx.maintainerRequest.updateMany({
+        where: { repositoryId: existing.id, isActive: true, createdAt: { lt: claimCutoff } },
+        data: { isActive: false },
+      });
+    }
     const activeRequest = existing?.maintainerRequests[0] ?? null;
     const analysis = analyzeRepository(raw, {
       maintainerOverride: activeRequest ? { status: activeRequest.status, message: activeRequest.message } : null,
     });
 
-    const now = new Date();
     const values = {
       githubId: BigInt(raw.githubId),
       owner: raw.owner,

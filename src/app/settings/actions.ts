@@ -36,6 +36,11 @@ export async function deleteAccount(confirmation: string) {
         where: { maintainerRequests: { some: { user, isActive: true } } },
         data: { statusVerified: false, statusConfidence: "LOW", statusReason: "Maintainer request removed. Awaiting reanalysis.", nextAnalysisAt: new Date() },
       });
+      // Categories the maintainer set would otherwise keep showing as a "Verified need".
+      await tx.repositoryHelpCategory.updateMany({
+        where: { verified: true, repository: { maintainerRequests: { some: { user, isActive: true } } } },
+        data: { verified: false },
+      });
       await tx.maintainerRequest.deleteMany({ where: { user } });
       await tx.repositoryMaintainer.updateMany({ where: { user }, data: { verifiedAt: null } });
       // Cascades remove saves, feedback, and legacy sessions; public repositories remain.

@@ -157,6 +157,8 @@ tests/                Authentication, detection, GitHub, and validation tests
 
 Claim checks retrieve the current user's GitHub OAuth token from Clerk on the server. Keep `GITHUB_ANALYSIS_TOKEN` separate: it handles public repository ingestion and never substitutes for user permissions. Only the Clerk publishable key belongs in browser code.
 
+A claim stays verified for 90 days (`CLAIM_VALIDITY_DAYS` in `src/lib/claims.ts`). Resubmitting the claim form re-checks GitHub access and renews it. After that, the maintainer's status stops overriding inference at the next reanalysis, the verified banner is hidden, and their feedback is no longer trusted. Feedback and reports allow one open item per type, repository and user, and 10 submissions per user in any 24 hours.
+
 For production, create a Clerk production instance, configure the maintain.help domain and GitHub connection using Clerk's callback URL, and set that instance's keys in the hosting environment. Clerk's development GitHub connection uses shared credentials by default. Do not add private-repository scopes for public discovery; organization OAuth policies can still require an owner to approve claim checks.
 
 **Existing installations:** the Clerk migration adds a nullable, unique `User.clerkId`. On first sign-in, the verified GitHub numeric ID links the existing local user, preserving saves, claims, and reviews. Email and username are never used to merge accounts. Legacy authentication tables remain inert; old sessions, stored OAuth tokens, and NextAuth environment variables are no longer used. A GitHub identity linked to a different Clerk user fails closed and requires deliberate administrative reconciliation.

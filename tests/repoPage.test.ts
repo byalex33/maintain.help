@@ -55,4 +55,23 @@ it("renders the repo overview, evidence and saved control, with honest empty sta
   expect(empty).toContain("Activity will appear after");
   expect(empty).toContain("No supporting evidence");
   expect(empty).not.toContain('aria-pressed=');
+
+  const request = { status: "NEED_MAINTAINER", message: "Take over releases", skillsWanted: [], user: {} };
+  mocks.repository.mockResolvedValue({ ...repository, maintainerRequests: [{ ...request, createdAt: new Date() }] });
+  expect(await render()).toContain("Verified by repository maintainer");
+  mocks.repository.mockResolvedValue({ ...repository, maintainerRequests: [{ ...request, createdAt: new Date(Date.now() - 91 * 86_400_000) }] });
+  const expired = await render();
+  expect(expired).not.toContain("Verified by repository maintainer");
+  expect(expired).not.toContain("Take over releases");
+  expect(expired).toContain("Claim this repository");
+
+  mocks.repository.mockResolvedValue(repository);
+  const page = (searchParams: Record<string, string>) => RepoPage({ params: Promise.resolve({ owner: "brightloop", repo: "queuelight" }), searchParams: Promise.resolve(searchParams) }).then(renderToStaticMarkup);
+  const duplicate = await page({ report: "duplicate" });
+  expect(duplicate).toMatch(/<details[^>]*id="report"[^>]*open=""/);
+  expect(duplicate).toContain("already have an open submission");
+  expect(await page({ feedback: "limit" })).toContain("limit for feedback and reports");
+  expect(await page({ feedback: "sent" })).toContain("Feedback sent.");
+  expect(await page({ report: "sent" })).toContain("Report sent.");
+  expect(await page({ report: "bogus" })).not.toContain('role="status"');
 });
