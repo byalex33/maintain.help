@@ -7,8 +7,8 @@ import type { Prisma } from "@/generated/prisma/client";
 
 export const maxDuration = 300;
 
-// Stop starting new analyses well before maxDuration; one import can take ~30s.
-const WORK_BUDGET_MS = 240_000;
+// Stop starting new analyses well before maxDuration; one import (GitHub fetch plus a 30s transaction) can take ~60s.
+const WORK_BUDGET_MS = 200_000;
 const BATCH_SIZE = 5;
 
 /**

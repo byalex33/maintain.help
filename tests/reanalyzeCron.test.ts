@@ -52,7 +52,7 @@ it("stops starting new work once the time budget is spent", async () => {
   let now = 0;
   vi.spyOn(Date, "now").mockImplementation(() => now);
   mocks.findMany.mockResolvedValue([repo(1), repo(2), repo(3)]);
-  mocks.ingest.mockImplementation(async () => { now += 200_000; });
+  mocks.ingest.mockImplementation(async () => { now += 150_000; });
 
   const body = await (await GET(request())).json();
 
