@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
 // Adapted from UI Lab Announcement Banner; see THIRD_PARTY_NOTICES.md.
@@ -10,6 +10,7 @@ const EASE = "cubic-bezier(0.23, 1, 0.32, 1)";
 // The iOS drawer curve for the height: quick to start, long soft settle, so
 // the page below glides rather than lurches.
 const DRAWER = "cubic-bezier(0.32, 0.72, 0, 1)";
+const subscribe = () => () => {};
 
 export function AnnouncementBanner({
   open,
@@ -29,7 +30,11 @@ export function AnnouncementBanner({
   className?: string;
   children: React.ReactNode;
 }) {
-  const reduceMotion = useReducedMotion();
+  const prefersReduced = useReducedMotion();
+  // The server can't read the preference; match its render during hydration,
+  // otherwise inline styles that never change again stay stuck at server values.
+  const hydrated = useSyncExternalStore(subscribe, () => true, () => false);
+  const reduceMotion = hydrated && prefersReduced === true;
   // The first appearance slides down from above; later ones (after a dismiss)
   // reverse the dismissal instead: open the space, then fade in.
   const [shown, setShown] = useState(open);
