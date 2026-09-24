@@ -6,7 +6,7 @@ vi.stubGlobal("React", React);
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), appAuth: vi.fn(), has: vi.fn(), transaction: vi.fn(),
-  repository: vi.fn(), requests: vi.fn(), maintainers: vi.fn(), user: vi.fn(), deleteUser: vi.fn(),
+  repository: vi.fn(), categories: vi.fn(), requests: vi.fn(), maintainers: vi.fn(), user: vi.fn(), deleteUser: vi.fn(),
   updateUser: vi.fn(), revalidatePath: vi.fn(),
 }));
 vi.mock("@clerk/nextjs/server", () => ({
@@ -32,6 +32,7 @@ beforeEach(() => {
   mocks.has.mockReturnValue(true);
   mocks.transaction.mockImplementation((fn) => fn({
     repository: { updateMany: mocks.repository },
+    repositoryHelpCategory: { updateMany: mocks.categories },
     maintainerRequest: { deleteMany: mocks.requests },
     repositoryMaintainer: { updateMany: mocks.maintainers },
     user: { deleteMany: mocks.user },
@@ -65,6 +66,11 @@ it("deletes only the current account and removes its active maintainer verificat
     where: { maintainerRequests: { some: { user, isActive: true } } },
     data: expect.objectContaining({ statusVerified: false, statusConfidence: "LOW", nextAnalysisAt: expect.any(Date) }),
   });
+  expect(mocks.categories).toHaveBeenCalledWith({
+    where: { verified: true, repository: { maintainerRequests: { some: { user, isActive: true } } } },
+    data: { verified: false },
+  });
+  expect(mocks.categories.mock.invocationCallOrder[0]).toBeLessThan(mocks.requests.mock.invocationCallOrder[0]);
   expect(mocks.user).toHaveBeenCalledWith({ where: user });
   expect(mocks.deleteUser).toHaveBeenCalledExactlyOnceWith("clerk-current-user");
   expect(mocks.deleteUser.mock.invocationCallOrder[0]).toBeGreaterThan(mocks.user.mock.invocationCallOrder[0]);

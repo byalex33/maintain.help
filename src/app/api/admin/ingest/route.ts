@@ -1,4 +1,4 @@
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { ingestRepository } from "@/lib/ingest";
 import { discoverAndIngest } from "@/lib/github/discovery";
 import { parseGitHubRepoUrl } from "@/lib/github/parseUrl";
@@ -6,7 +6,7 @@ import { GitHubRateLimitError } from "@/lib/github/client";
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!isAdminLogin(session?.user.githubLogin)) return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdminGitHubId(session?.user.githubId)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   if (typeof body?.search === "string" && body.search.trim()) {

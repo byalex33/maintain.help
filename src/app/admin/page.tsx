@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, Flag, LockKeyhole, Search, ShieldCheck, Sparkles } from "lucide-react";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Admin · Repositories", robots: { in
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
-  if (!isAdminLogin(session?.user.githubLogin)) notFound();
+  if (!isAdminGitHubId(session?.user.githubId)) notFound();
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
   const view = typeof params.view === "string" ? params.view : "";

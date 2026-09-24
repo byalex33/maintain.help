@@ -4,7 +4,7 @@ import { Compass, Plus, Search } from "lucide-react";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { Notifications } from "@/components/layout/notifications";
 import { getNotifications } from "@/lib/queries/notifications";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 export async function SiteHeader() {
@@ -43,7 +43,7 @@ export async function SiteHeader() {
           ) : null}
 
           {session?.user ? (
-            <AccountMenu username={session.user.githubLogin} image={session.user.image} isAdmin={isAdminLogin(session.user.githubLogin)} />
+            <AccountMenu username={session.user.githubLogin} image={session.user.image} isAdmin={isAdminGitHubId(session.user.githubId)} />
           ) : (
             <Button asChild size="sm">
               <Link href="/sign-in">Sign in with GitHub</Link>

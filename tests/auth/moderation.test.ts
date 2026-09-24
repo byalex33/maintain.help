@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ many: vi.fn(), release: vi.fn(), raw: vi.fn(), auth: vi.fn(), admin: vi.fn(), find: vi.fn(), first: vi.fn(), update: vi.fn(), updateMany: vi.fn(), transaction: vi.fn(), resolve: vi.fn(), fetch: vi.fn(), token: vi.fn(), permission: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminLogin: mocks.admin, getGitHubAccessToken: mocks.token }));
+vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminGitHubId: mocks.admin, getGitHubAccessToken: mocks.token }));
 vi.mock("@/lib/github/permissions", () => ({ checkClaimPermission: mocks.permission }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { repositoryAnalysisLease: { deleteMany: mocks.release }, $queryRaw: mocks.raw, $transaction: mocks.transaction, repository: { findUnique: mocks.find, findFirst: mocks.first, update: mocks.update }, repositoryFeedback: { updateMany: mocks.resolve } } }));

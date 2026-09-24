@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export async function moderateRepository(repositoryId: string, _state: { error: string | null }, formData: FormData) {
   const session = await auth();
-  if (!isAdminLogin(session?.user.githubLogin)) return { error: "Admin access is required." };
+  if (!isAdminGitHubId(session?.user.githubId)) return { error: "Admin access is required." };
   const intent = formData.get("intent");
   if (!["lock", "unlock", "delete", "restore", "feature", "unfeature"].includes(String(intent))) return { error: "Unknown action." };
   const repository = await db.repository.findUnique({ where: { id: repositoryId }, select: { fullName: true } });
@@ -38,7 +38,7 @@ export async function moderateRepository(repositoryId: string, _state: { error: 
 
 export async function resolveReport(repositoryId: string, reportId: string) {
   const session = await auth();
-  if (!isAdminLogin(session?.user.githubLogin)) return;
+  if (!isAdminGitHubId(session?.user.githubId)) return;
   await db.repositoryFeedback.updateMany({ where: { id: reportId, repositoryId, resolvedAt: null }, data: { resolvedAt: new Date() } });
   revalidatePath("/", "layout");
 }

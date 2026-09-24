@@ -87,10 +87,12 @@ Copy [`.env.example`](.env.example) to `.env`, then fill in your credentials.
 | `CLERK_SECRET_KEY` | Clerk's server-side secret key. |
 | `GITHUB_ANALYSIS_TOKEN` | Server-side GitHub token for public repository ingestion. |
 | `PRISMA_DEV_DATABASE` | Set to `true` only for the embedded `prisma dev` database; otherwise leave `false`. |
-| `ADMIN_GITHUB_LOGINS` | Comma-separated GitHub logins allowed to use admin tools. |
+| `ADMIN_GITHUB_IDS` | Comma-separated numeric GitHub user IDs allowed to use admin tools. |
 | `CRON_SECRET` | Bearer secret for scheduled analysis requests. |
 
 In Clerk, enable **GitHub only** and disable other sign-in methods. See the authentication notes below for production setup and repository claims. Local `.env` files are ignored by Git.
+
+Admin access uses numeric GitHub IDs because usernames can be renamed and reused. Find an ID at `https://api.github.com/users/<login>` (the `id` field). `ADMIN_GITHUB_LOGINS` is no longer read: existing deployments must set `ADMIN_GITHUB_IDS`, or admin tools stay locked.
 
 ### 3. Prepare the database and start
 
@@ -155,6 +157,8 @@ tests/                Authentication, detection, GitHub, and validation tests
 
 Claim checks retrieve the current user's GitHub OAuth token from Clerk on the server. Keep `GITHUB_ANALYSIS_TOKEN` separate: it handles public repository ingestion and never substitutes for user permissions. Only the Clerk publishable key belongs in browser code.
 
+A claim stays verified for 90 days (`CLAIM_VALIDITY_DAYS` in `src/lib/claims.ts`). Resubmitting the claim form re-checks GitHub access and renews it. After that, the maintainer's status stops overriding inference at the next reanalysis, the verified banner is hidden, and their feedback is no longer trusted. Feedback and reports allow one open item per type, repository and user, and 10 submissions per user in any 24 hours.
+
 For production, create a Clerk production instance, configure the maintain.help domain and GitHub connection using Clerk's callback URL, and set that instance's keys in the hosting environment. Clerk's development GitHub connection uses shared credentials by default. Do not add private-repository scopes for public discovery; organization OAuth policies can still require an owner to approve claim checks.
 
 **Existing installations:** the Clerk migration adds a nullable, unique `User.clerkId`. On first sign-in, the verified GitHub numeric ID links the existing local user, preserving saves, claims, and reviews. Email and username are never used to merge accounts. Legacy authentication tables remain inert; old sessions, stored OAuth tokens, and NextAuth environment variables are no longer used. A GitHub identity linked to a different Clerk user fails closed and requires deliberate administrative reconciliation.
@@ -166,7 +170,7 @@ For production, create a Clerk production instance, configure the maintain.help 
 
 | Route | Access and purpose |
 | :--- | :--- |
-| `/admin` | Repository moderation for users in `ADMIN_GITHUB_LOGINS`: search listings, view reports, lock/unlock, delete/restore. |
+| `/admin` | Repository moderation for users in `ADMIN_GITHUB_IDS`: search listings, view reports, lock/unlock, delete/restore. |
 | `/admin/calibration` | Redirects to `/admin`. |
 | `/api/admin/ingest` | Admin-only ingestion of a bounded repository list or GitHub search query. |
 | `/api/cron/analyze-repositories` | Scheduled analysis; requires `Authorization: Bearer $CRON_SECRET`. |

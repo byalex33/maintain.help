@@ -48,7 +48,7 @@ async function findRepos(where: Prisma.RepositoryWhereInput, take: number) {
   return db.repository.findMany({
     where: { ...PUBLIC_REPOSITORY, ...ACCEPTING_HELP, ...where },
     select: repositoryCardSelect,
-    orderBy: [{ stars: "desc" }],
+    orderBy: [{ stars: "desc" }, { id: "asc" }],
     take,
   });
 }
@@ -120,21 +120,22 @@ function buildExploreWhere(filters: ExploreFilters): Prisma.RepositoryWhereInput
   return where;
 }
 
+// Offset pagination needs a total order; every sort ends with the unique id.
 function sortToOrderBy(sort: ExploreSort): Prisma.RepositoryOrderByWithRelationInput[] {
   switch (sort) {
     case "upvotes":
       return [{ upvotes: { _count: "desc" } }, { stars: "desc" }, { id: "asc" }];
     case "stars":
-      return [{ stars: "desc" }];
+      return [{ stars: "desc" }, { id: "asc" }];
     case "recent":
-      return [{ pushedAt: "desc" }];
+      return [{ pushedAt: "desc" }, { id: "asc" }];
     case "most-help-needed":
-      return [{ capacityPressureScore: "desc" }];
+      return [{ capacityPressureScore: "desc" }, { id: "asc" }];
     case "newest":
-      return [{ createdAt: "desc" }];
+      return [{ createdAt: "desc" }, { id: "asc" }];
     case "recommended":
     default:
-      return [{ statusConfidence: "asc" }, { stars: "desc" }];
+      return [{ statusConfidence: "asc" }, { stars: "desc" }, { id: "asc" }];
   }
 }
 
@@ -211,7 +212,7 @@ export async function matchProjectsForDeveloper({ languages, helpCategories, exp
   return db.repository.findMany({
     where,
     select: repositoryCardSelect,
-    orderBy: [{ statusConfidence: "asc" }, { stars: "desc" }],
+    orderBy: [{ statusConfidence: "asc" }, { stars: "desc" }, { id: "asc" }],
     take: 30,
   });
 }

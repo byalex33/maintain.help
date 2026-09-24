@@ -13,7 +13,7 @@ import { ContributorsList } from "@/components/repo/contributors-list";
 import { OpenOpportunities } from "@/components/repo/open-opportunities";
 import { ClaimBanner } from "@/components/repo/claim-banner";
 import { getRepositoryDetail } from "@/lib/queries/repositories";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { ModerationControls } from "@/components/repo/moderation-controls";
 import { resolveReport } from "@/app/admin/actions";
 import { db } from "@/lib/db";
@@ -23,6 +23,18 @@ import { Button } from "@/components/ui/button";
 import { setRepositorySaved } from "@/app/saved/actions";
 import { submitRepositoryFeedback } from "./feedback/actions";
 import { STATUS_DESCRIPTION, HELP_CATEGORY_LABEL, HELP_CATEGORY_ICON, formatStars } from "@/lib/display";
+import { claimIsCurrent, claimValidSince } from "@/lib/claims";
+
+const SUBMISSION_MESSAGE: Record<string, { text: string; ok: boolean }> = {
+  duplicate: { text: "You already have an open submission of this kind for this repository. An admin will review it.", ok: false },
+  limit: { text: "You\u2019ve reached today\u2019s limit for feedback and reports. Please try again tomorrow.", ok: false },
+};
+
+function SubmissionMessage({ state, sent }: { state: string | string[] | undefined; sent: string }) {
+  const message = state === "sent" ? { text: sent, ok: true } : typeof state === "string" ? SUBMISSION_MESSAGE[state] : undefined;
+  if (!message) return null;
+  return <p role="status" className={message.ok ? "mb-3 text-sm text-green-700 dark:text-green-400" : "mb-3 text-sm text-amber-700 dark:text-amber-400"}>{message.text}</p>;
+}
 
 interface RepoPageParams {
   owner: string;
@@ -59,7 +71,7 @@ export async function generateMetadata({
 
 export default async function RepoPage({ params, searchParams }: { params: Promise<RepoPageParams>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
-  const isAdmin = isAdminLogin(session?.user.githubLogin);
+  const isAdmin = isAdminGitHubId(session?.user.githubId);
   const repository = await loadRepo(params, isAdmin);
   const sp = await searchParams;
   const { owner, repo } = await params;
@@ -71,7 +83,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
     permanentRedirect(`/${repository.owner}/${repository.name}${query.size ? `?${query}` : ""}`);
   }
   const reportState = sp.report;
-  const reportSent = reportState === "sent";
+  const feedbackState = sp.feedback;
   const reports = isAdmin ? await db.repositoryFeedback.findMany({
     where: { repositoryId: repository.id, resolvedAt: null },
     include: { user: { select: { githubLogin: true, name: true } } },
@@ -82,12 +94,13 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
     where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } },
     select: { userId: true },
   })) : false;
-  const activeRequest = repository.maintainerRequests[0] ?? null;
+  // Expired claims no longer speak for the maintainers; the listing invites a fresh claim instead.
+  const activeRequest = repository.maintainerRequests.find((request) => claimIsCurrent(request.createdAt)) ?? null;
   const saved = session?.user ? Boolean(await db.savedRepository.findUnique({
     where: { userId_repositoryId: { userId: session.user.id, repositoryId: repository.id } }, select: { id: true },
   })) : false;
   const verifiedMaintainer = session?.user ? Boolean(await db.repositoryMaintainer.findFirst({
-    where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { not: null } },
+    where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { gte: claimValidSince() } },
     select: { id: true },
   })) : false;
   const latestSnapshot = repository.metricSnapshots[0];
@@ -248,13 +261,14 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
             isSignedIn={Boolean(session?.user)}
           /> : null}
           <ContributorsList maintainers={repository.maintainers} />
-          {repository.isIndexed ? <details id="feedback" open={sp.feedback === "open"} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">
+          {repository.isIndexed ? <details id="feedback" open={typeof feedbackState === "string" && feedbackState !== ""} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
               Give feedback
               <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
             </summary>
             <CardContent>
               <h2 className="mb-3 text-sm font-semibold">Is this status inaccurate?</h2>
+              <SubmissionMessage state={feedbackState} sent="Feedback sent. Thank you for helping keep this listing accurate." />
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
                 {verifiedMaintainer ? <p className="text-xs text-emerald-600">Verified maintainer feedback receives higher trust.</p> : <p className="text-xs text-neutral-500">Feedback is reviewed and does not automatically change the status.</p>}
                 <Select name="type" required defaultValue="INACCURATE">
@@ -273,13 +287,13 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
               </form> : <Button asChild variant="outline" size="sm"><Link href={`/sign-in?callbackUrl=${encodeURIComponent(`/${repository.owner}/${repository.name}?feedback=open#feedback`)}`}>Sign in to send feedback</Link></Button>}
             </CardContent>
           </details> : null}
-          {repository.isIndexed ? <details id="report" open={reportSent || reportState === "open"} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">
+          {repository.isIndexed ? <details id="report" open={typeof reportState === "string" && reportState !== ""} className="group scroll-mt-20 rounded-2xl border border-border bg-card text-card-foreground">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
               <span className="flex items-center gap-2"><Flag aria-hidden="true" className="size-4" />Report repository</span>
               <ChevronDown aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180" />
             </summary>
             <CardContent>
-              {reportSent ? <p role="status" className="mb-3 text-sm text-green-700 dark:text-green-400">Report sent. An admin can now review it.</p> : null}
+              <SubmissionMessage state={reportState} sent="Report sent. An admin can now review it." />
               {session?.user ? <form action={submitRepositoryFeedback.bind(null, repository.owner, repository.name)} className="space-y-3">
                 <input type="hidden" name="type" value="REPORT" />
                 <label className="block space-y-2 text-xs font-medium">What should we look into?

@@ -28,12 +28,10 @@ const githubIdentity = cache(async () => {
   };
 });
 
-/** Clerk authenticates; our stable local ID keeps claims, feedback and saves intact. */
-export const auth = cache(async () => {
-  const identity = await githubIdentity();
-  if (!identity) return null;
-  const { clerkId, githubId, githubLogin, name, image } = identity;
-  const user = await db.$transaction(async (tx) => {
+type GitHubIdentity = NonNullable<Awaited<ReturnType<typeof githubIdentity>>>;
+
+async function linkUser({ clerkId, githubId, githubLogin, name, image }: GitHubIdentity) {
+  return db.$transaction(async (tx) => {
     // Never link by a mutable username or an email supplied by another provider.
     const existing = await tx.user.upsert({
       where: { githubId },
@@ -49,6 +47,18 @@ export const auth = cache(async () => {
     if (error instanceof AccountLinkConflictError) return null;
     throw error;
   });
+}
+
+/** Clerk authenticates; our stable local ID keeps claims, feedback and saves intact. */
+export const auth = cache(async () => {
+  const identity = await githubIdentity();
+  if (!identity) return null;
+  const { clerkId, githubId, githubLogin, name, image } = identity;
+  // Most requests find an unchanged, linked profile; only write when something differs.
+  const current = await db.user.findUnique({ where: { githubId } });
+  if (current?.clerkId && current.clerkId !== clerkId) return null;
+  const unchanged = current?.clerkId === clerkId && current.githubLogin === githubLogin && current.name === name && current.image === image;
+  const user = unchanged ? current : await linkUser(identity);
   if (!user) return null;
   return { user: { id: user.id, githubId, githubLogin, name: user.name, image: user.image } };
 });
@@ -72,9 +82,10 @@ export async function getGitHubAccessToken(userId: string): Promise<string | nul
   }
 }
 
-export function isAdminLogin(login: string | null | undefined): boolean {
-  if (!login) return false;
-  return (process.env.ADMIN_GITHUB_LOGINS ?? "")
+/** Admin rights follow the immutable numeric GitHub ID, never a reusable username. */
+export function isAdminGitHubId(githubId: string | null | undefined): boolean {
+  if (!githubId || !/^\d+$/.test(githubId)) return false;
+  return (process.env.ADMIN_GITHUB_IDS ?? "")
     .split(",")
-    .some((admin) => admin.trim().toLowerCase() === login.toLowerCase());
+    .some((admin) => admin.trim() === githubId);
 }

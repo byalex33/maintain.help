@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { makeRawRepository } from "./fixtures/rawRepository";
 
-const mocks = vi.hoisted(() => ({ first: vi.fn(), many: vi.fn(), release: vi.fn(), raw: vi.fn(), txRaw: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(), fetch: vi.fn(), persist: vi.fn(), transaction: vi.fn() }));
+const mocks = vi.hoisted(() => ({ first: vi.fn(), many: vi.fn(), release: vi.fn(), raw: vi.fn(), txRaw: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(), fetch: vi.fn(), persist: vi.fn(), transaction: vi.fn(), expire: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { repositoryAnalysisLease: { deleteMany: mocks.release }, repository: { findFirst: mocks.first, updateMany: mocks.updateMany }, $queryRaw: mocks.raw, $transaction: mocks.transaction } }));
 vi.mock("@/lib/github/fetchRepositoryData", () => ({ fetchRepositoryData: mocks.fetch }));
 vi.mock("@/lib/detection/persist", () => ({ persistRepositoryAnalysis: mocks.persist }));
@@ -21,6 +21,7 @@ beforeEach(() => {
   mocks.transaction.mockImplementation(async (callback) => callback({
     $queryRaw: mocks.txRaw,
     repository: { findMany: mocks.many, upsert: mocks.upsert, updateMany: mocks.updateMany },
+    maintainerRequest: { updateMany: mocks.expire },
   }));
 });
 
@@ -63,6 +64,19 @@ it("reads the latest maintainer request after taking the row lock", async () => 
   expect(saved).toMatchObject({ status: "SEEKING_MAINTAINERS", statusVerified: true, analysisFailureCount: 0 });
   expect(mocks.txRaw.mock.calls[1][0].join("")).toContain('FROM "Repository"');
   expect(mocks.txRaw.mock.invocationCallOrder[1]).toBeLessThan(mocks.many.mock.invocationCallOrder[0]);
+});
+
+it("expires unconfirmed claims so inferred status returns", async () => {
+  const saved = await ingestRepository("acme", "widget");
+  const include = mocks.many.mock.calls[0][0].include.maintainerRequests;
+  const cutoff: Date = include.where.createdAt.gte;
+  expect(include.where.isActive).toBe(true);
+  expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(90 * 24 * 60 * 60 * 1000 - 1000);
+  expect(mocks.expire).toHaveBeenCalledWith({
+    where: { repositoryId: "repo", isActive: true, createdAt: { lt: cutoff } }, data: { isActive: false },
+  });
+  expect(mocks.expire.mock.invocationCallOrder[0]).toBeLessThan(mocks.upsert.mock.invocationCallOrder[0]);
+  expect(saved.statusVerified).toBe(false);
 });
 
 it("does not let an expired worker persist over its replacement", async () => {
