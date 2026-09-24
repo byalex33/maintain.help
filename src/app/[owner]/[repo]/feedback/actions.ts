@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { RepositoryFeedbackType } from "@/generated/prisma/enums";
-import { feedbackIsTrusted } from "@/lib/feedback";
+import { FEEDBACK_DAILY_LIMIT, feedbackIsTrusted } from "@/lib/feedback";
 import { repositoryNameFilter } from "@/lib/repositoryIdentity";
+
+const DAY = 24 * 60 * 60 * 1000;
 
 export async function submitRepositoryFeedback(owner: string, repo: string, formData: FormData) {
   const session = await auth();
@@ -25,6 +27,17 @@ export async function submitRepositoryFeedback(owner: string, repo: string, form
   });
   const trusted = feedbackIsTrusted(maintainer?.verifiedAt);
   if (!trusted && type !== RepositoryFeedbackType.INACCURATE && type !== RepositoryFeedbackType.REPORT) return;
+  const anchor = type === RepositoryFeedbackType.REPORT ? "report" : "feedback";
+  const path = `/${repository.owner}/${repository.name}`;
+  const [duplicate, recent] = await Promise.all([
+    db.repositoryFeedback.findFirst({
+      where: { repositoryId: repository.id, userId: session.user.id, type: type as RepositoryFeedbackType, resolvedAt: null },
+      select: { id: true },
+    }),
+    db.repositoryFeedback.count({ where: { userId: session.user.id, createdAt: { gte: new Date(Date.now() - DAY) } } }),
+  ]);
+  if (duplicate) redirect(`${path}?${anchor}=duplicate#${anchor}`);
+  if (recent >= FEEDBACK_DAILY_LIMIT) redirect(`${path}?${anchor}=limit#${anchor}`);
   await db.repositoryFeedback.create({ data: {
     repositoryId: repository.id,
     userId: session.user.id,
@@ -32,7 +45,7 @@ export async function submitRepositoryFeedback(owner: string, repo: string, form
     notes: notes || null,
     trusted,
   } });
-  revalidatePath(`/${repository.owner}/${repository.name}`);
+  revalidatePath(path);
   revalidatePath("/admin");
-  if (type === RepositoryFeedbackType.REPORT) redirect(`/${repository.owner}/${repository.name}?report=sent#report`);
+  redirect(`${path}?${anchor}=sent#${anchor}`);
 }
