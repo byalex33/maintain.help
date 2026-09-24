@@ -13,7 +13,7 @@ import { ContributorsList } from "@/components/repo/contributors-list";
 import { OpenOpportunities } from "@/components/repo/open-opportunities";
 import { ClaimBanner } from "@/components/repo/claim-banner";
 import { getRepositoryDetail } from "@/lib/queries/repositories";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { ModerationControls } from "@/components/repo/moderation-controls";
 import { resolveReport } from "@/app/admin/actions";
 import { db } from "@/lib/db";
@@ -59,7 +59,7 @@ export async function generateMetadata({
 
 export default async function RepoPage({ params, searchParams }: { params: Promise<RepoPageParams>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
-  const isAdmin = isAdminLogin(session?.user.githubLogin);
+  const isAdmin = isAdminGitHubId(session?.user.githubId);
   const repository = await loadRepo(params, isAdmin);
   const sp = await searchParams;
   const { owner, repo } = await params;

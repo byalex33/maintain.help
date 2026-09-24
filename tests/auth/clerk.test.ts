@@ -2,16 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   clerkAuth: vi.fn(), getUser: vi.fn(), getTokens: vi.fn(),
-  upsert: vi.fn(), update: vi.fn(), transaction: vi.fn(),
+  upsert: vi.fn(), update: vi.fn(), transaction: vi.fn(), findUnique: vi.fn(),
 }));
 vi.mock("react", () => ({ cache: (fn: unknown) => fn }));
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mocks.clerkAuth,
   clerkClient: async () => ({ users: { getUser: mocks.getUser, getUserOauthAccessToken: mocks.getTokens } }),
 }));
-vi.mock("@/lib/db", () => ({ db: { $transaction: mocks.transaction } }));
+vi.mock("@/lib/db", () => ({ db: { $transaction: mocks.transaction, user: { findUnique: mocks.findUnique } } }));
 
-import { auth, getGitHubAccessToken, isAdminLogin } from "@/lib/auth";
+import { auth, getGitHubAccessToken, isAdminGitHubId } from "@/lib/auth";
 
 const account = {
   id: "eac_github", provider: "oauth_github", providerUserId: "12345",
@@ -28,6 +28,7 @@ beforeEach(() => {
   mocks.update.mockResolvedValue({ id: "local_existing", clerkId: "user_clerk", name: "Maintainer", image: null });
   mocks.transaction.mockImplementation((fn) => fn({ user: { upsert: mocks.upsert, update: mocks.update } }));
   mocks.getTokens.mockResolvedValue({ data: [{ externalAccountId: "eac_github", token: "test-token" }] });
+  mocks.findUnique.mockResolvedValue(null);
 });
 
 describe("Clerk GitHub identity bridge", () => {
@@ -110,10 +111,46 @@ describe("Clerk GitHub identity bridge", () => {
     expect(await getGitHubAccessToken("local_existing")).toBeNull();
   });
 
-  it("keeps the admin allowlist explicit", () => {
-    vi.stubEnv("ADMIN_GITHUB_LOGINS", " owner, maintainer ");
-    expect(isAdminLogin("MAINTAINER")).toBe(true);
-    expect(isAdminLogin("someone_else")).toBe(false);
-    expect(isAdminLogin(null)).toBe(false);
+  it("skips the write transaction when the linked profile is unchanged", async () => {
+    const stored = { id: "local_existing", clerkId: "user_clerk", githubLogin: "maintainer", name: "Maintainer", image: profile.imageUrl };
+    mocks.findUnique.mockResolvedValue(stored);
+    expect((await auth())?.user.id).toBe("local_existing");
+    expect(mocks.findUnique).toHaveBeenCalledWith({ where: { githubId: "12345" } });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["login", { githubLogin: "old-name" }], ["name", { name: "Old" }], ["image", { image: null }], ["Clerk link", { clerkId: null }],
+  ])("writes when the stored %s differs", async (_field, change) => {
+    mocks.findUnique.mockResolvedValue({ id: "local_existing", clerkId: "user_clerk", githubLogin: "maintainer", name: "Maintainer", image: profile.imageUrl, ...change });
+    await auth();
+    expect(mocks.transaction).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a GitHub identity linked to another Clerk user without writing", async () => {
+    mocks.findUnique.mockResolvedValue({ id: "local_existing", clerkId: "someone_else", githubLogin: "maintainer", name: "Maintainer", image: null });
+    expect(await auth()).toBeNull();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("grants admin by immutable GitHub ID only", () => {
+    vi.stubEnv("ADMIN_GITHUB_IDS", " 111, 12345 ");
+    expect(isAdminGitHubId("12345")).toBe(true);
+    expect(isAdminGitHubId("999")).toBe(false);
+    expect(isAdminGitHubId("1234")).toBe(false);
+    expect(isAdminGitHubId(null)).toBe(false);
+    expect(isAdminGitHubId("")).toBe(false);
+  });
+
+  it("does not grant admin to a reused username with a different GitHub ID", () => {
+    vi.stubEnv("ADMIN_GITHUB_IDS", "12345");
+    vi.stubEnv("ADMIN_GITHUB_LOGINS", "maintainer");
+    expect(isAdminGitHubId("67890")).toBe(false);
+    expect(isAdminGitHubId("maintainer")).toBe(false);
+  });
+
+  it("fails closed when no admin IDs are configured", () => {
+    vi.stubEnv("ADMIN_GITHUB_IDS", "");
+    expect(isAdminGitHubId("12345")).toBe(false);
   });
 });

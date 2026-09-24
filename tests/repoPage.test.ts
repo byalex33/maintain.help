@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 vi.stubGlobal("React", React);
 const mocks = vi.hoisted(() => ({ repository: vi.fn(), auth: vi.fn(), saved: vi.fn() }));
 vi.mock("@/lib/queries/repositories", () => ({ getRepositoryDetail: mocks.repository }));
-vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminLogin: () => false }));
+vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminGitHubId: () => false }));
 vi.mock("@/lib/db", () => ({ db: { repositoryUpvote: { findUnique: async () => null }, savedRepository: { findUnique: mocks.saved }, repositoryMaintainer: { findFirst: async () => null } } }));
 vi.mock("@/app/admin/actions", () => ({ resolveReport: vi.fn(), moderateRepository: vi.fn() }));
 vi.mock("@/app/upvotes/actions", () => ({ setRepositoryUpvoted: vi.fn() }));

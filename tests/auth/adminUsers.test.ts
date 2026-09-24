@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), admin: vi.fn(), count: vi.fn(), users: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminLogin: mocks.admin }));
+vi.mock("@/lib/auth", () => ({ auth: mocks.auth, isAdminGitHubId: mocks.admin }));
 vi.mock("@/lib/db", () => ({ db: { user: { count: mocks.count, findMany: mocks.users } } }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("Not found"); } }));
 

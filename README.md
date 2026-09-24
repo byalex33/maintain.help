@@ -87,10 +87,12 @@ Copy [`.env.example`](.env.example) to `.env`, then fill in your credentials.
 | `CLERK_SECRET_KEY` | Clerk's server-side secret key. |
 | `GITHUB_ANALYSIS_TOKEN` | Server-side GitHub token for public repository ingestion. |
 | `PRISMA_DEV_DATABASE` | Set to `true` only for the embedded `prisma dev` database; otherwise leave `false`. |
-| `ADMIN_GITHUB_LOGINS` | Comma-separated GitHub logins allowed to use admin tools. |
+| `ADMIN_GITHUB_IDS` | Comma-separated numeric GitHub user IDs allowed to use admin tools. |
 | `CRON_SECRET` | Bearer secret for scheduled analysis requests. |
 
 In Clerk, enable **GitHub only** and disable other sign-in methods. See the authentication notes below for production setup and repository claims. Local `.env` files are ignored by Git.
+
+Admin access uses numeric GitHub IDs because usernames can be renamed and reused. Find an ID at `https://api.github.com/users/<login>` (the `id` field). `ADMIN_GITHUB_LOGINS` is no longer read: existing deployments must set `ADMIN_GITHUB_IDS`, or admin tools stay locked.
 
 ### 3. Prepare the database and start
 
@@ -166,7 +168,7 @@ For production, create a Clerk production instance, configure the maintain.help 
 
 | Route | Access and purpose |
 | :--- | :--- |
-| `/admin` | Repository moderation for users in `ADMIN_GITHUB_LOGINS`: search listings, view reports, lock/unlock, delete/restore. |
+| `/admin` | Repository moderation for users in `ADMIN_GITHUB_IDS`: search listings, view reports, lock/unlock, delete/restore. |
 | `/admin/calibration` | Redirects to `/admin`. |
 | `/api/admin/ingest` | Admin-only ingestion of a bounded repository list or GitHub search query. |
 | `/api/cron/analyze-repositories` | Scheduled analysis; requires `Authorization: Bearer $CRON_SECRET`. |

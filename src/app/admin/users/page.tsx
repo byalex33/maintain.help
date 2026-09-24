@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth, isAdminLogin } from "@/lib/auth";
+import { auth, isAdminGitHubId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Admin · Users", robots: { index: fa
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
-  if (!isAdminLogin(session?.user.githubLogin)) notFound();
+  if (!isAdminGitHubId(session?.user.githubId)) notFound();
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
   const requestedPage = typeof params.page === "string" ? Number(params.page) : 1;
