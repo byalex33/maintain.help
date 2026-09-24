@@ -3,18 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestRepository } from "@/lib/ingest";
 import { GitHubRateLimitError } from "@/lib/github/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const maxDuration = 300;
 
-// Kept small so one cron invocation stays well within serverless execution limits.
-const BATCH_SIZE = 15;
+// Stop starting new analyses well before maxDuration; one import can take ~30s.
+const WORK_BUDGET_MS = 240_000;
+const BATCH_SIZE = 5;
 
 /**
  * Scheduled reanalysis. Intended to be triggered by a Vercel Cron Job hitting
- * this route on a schedule (see vercel.json). Prioritises repositories that
- * are either manually submitted or already popular/indexed, and picks the
- * most stale ones first — this deliberately never attempts to scan all of
- * GitHub.
+ * this route on a schedule (see vercel.json). Works through due repositories,
+ * most stale first, until the time budget or GitHub rate limit is reached —
+ * this deliberately never attempts to scan all of GitHub. The response reports
+ * the remaining due backlog so staleness is visible.
  */
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -22,30 +24,44 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const candidates = await db.repository.findMany({
-    where: {
-      isIndexed: true,
-      isLocked: false,
-      isFixture: false,
-      OR: [{ nextAnalysisAt: null }, { nextAnalysisAt: { lte: new Date() } }],
-    },
-    select: { owner: true, name: true, lastAnalyzedAt: true },
-    orderBy: [{ lastAnalyzedAt: "asc" }, { stars: "desc" }],
-    take: BATCH_SIZE,
+  const deadline = Date.now() + WORK_BUDGET_MS;
+  const due = (): Prisma.RepositoryWhereInput => ({
+    isIndexed: true,
+    isLocked: false,
+    isFixture: false,
+    OR: [{ nextAnalysisAt: null }, { nextAnalysisAt: { lte: new Date() } }],
   });
-
+  // Recently analysed repositories return from cache without rescheduling, so never retry one in this run.
+  const attempted: string[] = [];
   const results: { repo: string; ok: boolean; error?: string }[] = [];
+  let rateLimited = false;
 
-  for (const candidate of candidates) {
-    const fullName = `${candidate.owner}/${candidate.name}`;
-    try {
-      await ingestRepository(candidate.owner, candidate.name);
-      results.push({ repo: fullName, ok: true });
-    } catch (err) {
-      results.push({ repo: fullName, ok: false, error: err instanceof Error ? err.message : "Unknown error" });
-      if (err instanceof GitHubRateLimitError) break;
+  while (!rateLimited && Date.now() < deadline) {
+    const candidates = await db.repository.findMany({
+      where: { ...due(), id: { notIn: [...attempted] } },
+      select: { id: true, owner: true, name: true },
+      orderBy: [{ lastAnalyzedAt: "asc" }, { stars: "desc" }, { id: "asc" }],
+      take: BATCH_SIZE,
+    });
+    if (!candidates.length) break;
+
+    for (const candidate of candidates) {
+      if (Date.now() >= deadline) break;
+      attempted.push(candidate.id);
+      const fullName = `${candidate.owner}/${candidate.name}`;
+      try {
+        await ingestRepository(candidate.owner, candidate.name);
+        results.push({ repo: fullName, ok: true });
+      } catch (err) {
+        results.push({ repo: fullName, ok: false, error: err instanceof Error ? err.message : "Unknown error" });
+        if (err instanceof GitHubRateLimitError) {
+          rateLimited = true;
+          break;
+        }
+      }
     }
   }
 
-  return NextResponse.json({ analyzed: results.length, results });
+  const remainingDue = await db.repository.count({ where: due() });
+  return NextResponse.json({ analyzed: results.length, remainingDue, rateLimited, results });
 }
