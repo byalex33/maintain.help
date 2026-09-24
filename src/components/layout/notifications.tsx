@@ -2,24 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
-import { createPortal } from "react-dom";
-import { Bell, Heart, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, useTransition } from "react";
+import { Heart } from "lucide-react";
 import { markNotificationsRead } from "@/app/notifications/actions";
+import { AnnouncementBanner } from "@/components/ui/announcement-banner";
+import { NotificationBell } from "@/components/ui/notification-bell";
 
-type Notification = { id: string; unread: boolean; createdAt: string; actor: string; repository: string; href: string };
-const subscribe = () => () => {};
+export type LikeNotification = { id: string; unread: boolean; createdAt: string; actor: string; repository: string; href: string };
 
-export function Notifications({ items }: { items: Notification[] }) {
-  const menu = useRef<HTMLDetailsElement>(null);
-  const mounted = useSyncExternalStore(subscribe, () => true, () => false);
+const DISMISSED_KEY = "maintain-help:dismissed-like-banner";
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+export function Notifications({ items }: { items: LikeNotification[] }) {
   const router = useRouter();
-  const [dismissed, setDismissed] = useState<string | null>(null);
+  // Optimistic reads: the badge and dots clear before the server confirms.
+  const [read, setRead] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
-  const unread = items.filter((item) => item.unread);
-  const latest = unread[0];
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     // ponytail: refresh the page once a minute; use a dedicated feed if traffic warrants it.
@@ -29,67 +31,76 @@ export function Notifications({ items }: { items: Notification[] }) {
     return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, [router]);
 
-  useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      if (menu.current && !menu.current.contains(event.target as Node)) menu.current.open = false;
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && menu.current?.open) {
-        menu.current.open = false;
-        menu.current.querySelector("summary")?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", closeOutside);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOutside);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, []);
-
   function markRead(ids: string[]) {
     setError("");
+    setRead((current) => new Set([...current, ...ids]));
     startTransition(async () => {
-      try { await markNotificationsRead(ids); }
-      catch { setError("Could not mark notifications as read. Please try again."); }
+      try {
+        await markNotificationsRead(ids);
+      } catch {
+        setRead((current) => new Set([...current].filter((id) => !ids.includes(id))));
+        setError("Could not mark notifications as read. Please try again.");
+      }
     });
   }
 
-  return <>
-    {/* Adapted from Opensource UI Notification and Deploy Notification; see THIRD_PARTY_NOTICES.md. */}
-    <details ref={menu} className="md:relative">
-      <summary aria-label={`Notifications, ${unread.length}${unread.length === 20 ? "+" : ""} unread`} className="relative flex size-9 cursor-pointer list-none items-center justify-center rounded-md border border-border bg-background hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
-        <Bell aria-hidden="true" className="size-4" />
-        {unread.length > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{unread.length > 9 ? "9+" : unread.length}</span>}
-      </summary>
-      <section aria-label="Notifications" className="absolute inset-x-5 top-full z-40 mt-2 rounded-xl border border-border bg-muted p-2 shadow-lg md:left-auto md:right-0 md:w-80">
-        <div className="flex items-center justify-between gap-2 px-2 pb-2">
-          <h2 className="text-sm font-semibold">Notifications</h2>
-          {unread.length > 0 && <Button variant="ghost" size="sm" disabled={pending} onClick={() => markRead(unread.map((item) => item.id))}>Mark shown as read</Button>}
-        </div>
-        {error && <p role="alert" className="px-2 pb-2 text-xs text-destructive">{error}</p>}
-        <ul className="max-h-80 space-y-2 overflow-y-auto">
-          {items.map((item) => <li key={item.id} className={`rounded-lg border p-3 ${item.unread ? "border-border bg-background" : "border-transparent"}`}>
-            <Link href={item.href} onClick={() => { if (menu.current) menu.current.open = false; }} className="block rounded-sm text-sm focus-visible:outline-2 focus-visible:outline-offset-2">
-              <span className="flex items-center gap-2 font-medium"><Heart aria-hidden="true" className="size-4 shrink-0 text-rose-500" />{item.unread ? "New repo like" : "Repo like"}</span>
-              <span className="mt-1 block break-words text-xs text-muted-foreground">{item.actor} liked {item.repository}</span>
-            </Link>
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <time dateTime={item.createdAt} className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}</time>
-              {item.unread && <Button variant="ghost" size="sm" disabled={pending} onClick={() => markRead([item.id])} aria-label={`Mark like on ${item.repository} as read`}>Mark read</Button>}
-            </div>
-          </li>)}
-        </ul>
-        {!items.length && <p className="p-4 text-sm text-muted-foreground">No notifications yet. Likes on your verified repositories will appear here.</p>}
-        {items.length === 20 && <p className="px-2 pt-2 text-xs text-muted-foreground">Showing 20 notifications, unread first.</p>}
-      </section>
-    </details>
-    {mounted && createPortal(<div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-4 z-40 md:left-4 md:right-auto md:w-96">
-      {latest && latest.id !== dismissed && <div className="pointer-events-auto relative grid grid-cols-[2.375rem_minmax(0,1fr)] items-start gap-3 rounded-[1.25rem] border border-border bg-background/95 p-4 pr-12 shadow-lg backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2">
-        <div className="flex size-9.5 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Heart aria-hidden="true" className="size-5" /></div>
-        <div className="min-w-0 text-sm"><p className="font-semibold">Your repo got a like</p><Link href={latest.href} onClick={() => setDismissed(latest.id)} className="mt-1 block break-words rounded-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">{latest.actor} liked {latest.repository}</Link></div>
-        <Button variant="ghost" size="icon" aria-label="Dismiss like notification" onClick={() => setDismissed(latest.id)} className="absolute right-1 top-1"><X aria-hidden="true" className="size-4" /></Button>
-      </div>}
-    </div>, document.body)}
-  </>;
+  return <NotificationBell
+    notifications={items.map((item) => ({
+      id: item.id,
+      unread: item.unread && !read.has(item.id),
+      content: <Link href={item.href} className="block rounded-sm text-sm focus-visible:outline-2 focus-visible:outline-offset-2">
+        <span className="flex items-center gap-1.5 font-medium"><Heart aria-hidden="true" className="size-3.5 shrink-0 text-rose-500" />{item.actor} liked {item.repository}</span>
+        <time dateTime={item.createdAt} className="mt-0.5 block text-xs text-muted-foreground">{formatDate(item.createdAt)}</time>
+      </Link>,
+    }))}
+    onRead={markRead}
+    describe={(notification) => {
+      const item = items.find(({ id }) => id === notification.id);
+      return item ? `New notification: ${item.actor} liked ${item.repository}` : "New notification";
+    }}
+    header={<div className="px-3 pb-1.5 pt-2">
+      <h2 className="text-[13px] font-medium text-muted-foreground">Notifications</h2>
+      {error ? <p role="alert" className="mt-1 text-xs text-destructive">{error}</p> : null}
+    </div>}
+    empty={<p className="px-3 pb-3 pt-1 text-sm text-muted-foreground">No notifications yet. Likes on your verified repositories will appear here.</p>}
+    footer={items.length === 20 ? <p className="px-3 pb-1 pt-2 text-xs text-muted-foreground">Showing 20 notifications, unread first.</p> : null}
+  />;
+}
+
+/** Announces the newest unread like above the header until dismissed or read. */
+export function LikeBanner({ latest }: { latest: LikeNotification | null }) {
+  // Unknown on the server and first client render, so a remembered dismissal
+  // never mismatches hydration and the entrance still plays.
+  const [dismissed, setDismissed] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try { setDismissed(sessionStorage.getItem(DISMISSED_KEY)); } catch { setDismissed(null); }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Keep the last notification rendered while the banner folds away.
+  const [shown, setShown] = useState(latest);
+  if (latest && latest.id !== shown?.id) setShown(latest);
+
+  const open = dismissed !== undefined && latest !== null && latest.id !== dismissed;
+  const dismiss = () => {
+    if (!latest) return;
+    setDismissed(latest.id);
+    try { sessionStorage.setItem(DISMISSED_KEY, latest.id); } catch {
+      // Private windows can refuse storage; the banner just won't remember.
+    }
+  };
+
+  if (!shown) return null;
+  return <AnnouncementBanner
+    open={open}
+    onDismiss={dismiss}
+    label="New repository like"
+    icon={<Heart className="size-4 fill-current text-rose-400" />}
+    action={<Link href={shown.href} onClick={dismiss} className="shrink-0 rounded-sm font-medium underline decoration-background/40 underline-offset-[3px] outline-hidden transition-[text-decoration-color] duration-150 ease-out hover:decoration-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-background">View</Link>}
+  >
+    <span className="font-medium">{shown.actor}</span> liked {shown.repository}
+  </AnnouncementBanner>;
 }

@@ -79,7 +79,7 @@ it("does not report success or invalidate pages when persistence fails", async (
 it("notifies verified maintainers other than the actor with a deduplicated history", async () => {
   await setRepositoryUpvoted("repo", true);
   expect(mocks.maintainers).toHaveBeenCalledWith({
-    where: { repositoryId: "repo", verifiedAt: { not: null }, userId: { not: "local-user" } }, select: { userId: true },
+    where: { repositoryId: "repo", verifiedAt: { gte: expect.any(Date) }, userId: { not: "local-user" } }, select: { userId: true },
   });
   expect(mocks.notify).toHaveBeenCalledWith({ data: [{ recipientId: "maintainer", actorId: "local-user", repositoryId: "repo" }], skipDuplicates: true });
   mocks.notify.mockClear();

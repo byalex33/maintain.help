@@ -1,12 +1,14 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { PUBLIC_REPOSITORY } from "./repositories";
+import { claimValidSince } from "@/lib/claims";
 
 export async function getNotifications(userId: string) {
   const notifications = await db.repositoryLikeNotification.findMany({
     where: { recipientId: userId, repository: {
       ...PUBLIC_REPOSITORY,
-      maintainers: { some: { userId, verifiedAt: { not: null } } },
+      // Expired claims stop surfacing likes, matching how the claim stops overriding status.
+      maintainers: { some: { userId, verifiedAt: { gte: claimValidSince() } } },
     } },
     select: { id: true, readAt: true, createdAt: true,
       actor: { select: { githubLogin: true } },

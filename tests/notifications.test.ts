@@ -24,6 +24,6 @@ it("lists only public repos still verified for this recipient and serializes dis
   mocks.list.mockResolvedValue([{ id: "n", readAt: null, createdAt: new Date("2026-09-12"), actor: { githubLogin: "alex" }, repository: { owner: "owner", name: "repo", fullName: "owner/repo" } }]);
   expect(await getNotifications("recipient")).toEqual([{ id: "n", unread: true, createdAt: "2026-09-12T00:00:00.000Z", actor: "alex", repository: "owner/repo", href: "/owner/repo" }]);
   expect(mocks.list.mock.calls[0][0]).toMatchObject({ where: { recipientId: "recipient", repository: {
-    isIndexed: true, availability: "AVAILABLE", maintainers: { some: { userId: "recipient", verifiedAt: { not: null } } },
+    isIndexed: true, availability: "AVAILABLE", maintainers: { some: { userId: "recipient", verifiedAt: { gte: expect.any(Date) } } },
   } }, take: 20 });
 });

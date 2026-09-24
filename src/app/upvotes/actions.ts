@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { claimValidSince } from "@/lib/claims";
 
 export async function setRepositoryUpvoted(repositoryId: string, upvoted: boolean) {
   const session = await auth();
@@ -26,7 +27,7 @@ export async function setRepositoryUpvoted(repositoryId: string, upvoted: boolea
       const created = await tx.repositoryUpvote.createMany({ data: [key], skipDuplicates: true });
       if (created.count) {
         const maintainers = await tx.repositoryMaintainer.findMany({
-          where: { repositoryId, verifiedAt: { not: null }, userId: { not: session.user.id } },
+          where: { repositoryId, verifiedAt: { gte: claimValidSince() }, userId: { not: session.user.id } },
           select: { userId: true },
         });
         const recipients = [...new Set(maintainers.flatMap(({ userId }) => userId ? [userId] : []))];
