@@ -15,7 +15,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "calibrate:ingest": "node --conditions=react-server --import tsx scripts/calibrate-ingest.ts",
     "analyze:repo": "node --conditions=react-server --import tsx scripts/analyze-repo.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.1",
