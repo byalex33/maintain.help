@@ -2,16 +2,25 @@ import type { CSSProperties } from "react";
 
 import styles from "./hero-stars.module.css";
 
-// Fixed positions keep the server render stable and avoid a repeating grid.
+// Mix each sample independently so positions have no visible arithmetic pattern.
+// A fixed seed keeps the server output identical across renders.
+function starRandom(sample: number) {
+  let value = (sample + 0x6d2b79f5) | 0;
+  value = Math.imul(value ^ (value >>> 16), 0x21f0aaad);
+  value = Math.imul(value ^ (value >>> 15), 0x735a2d97);
+  return ((value ^ (value >>> 15)) >>> 0) / 4294967296;
+}
+
 const stars = Array.from({ length: 72 }, (_, index) => {
-  const seed = (index + 1) * 7919;
+  const sample = index * 5;
+  const size = 1 + starRandom(sample + 2) ** 3 * 2;
   return {
-    left: `${(seed % 997) / 10}%`,
-    top: `${((seed * 37) % 991) / 10}%`,
-    width: index % 9 === 0 ? 3 : index % 3 === 0 ? 2 : 1,
-    height: index % 9 === 0 ? 3 : index % 3 === 0 ? 2 : 1,
-    animationDelay: `${-(index % 13)}s`,
-    animationDuration: `${5 + (index % 7)}s`,
+    left: `${starRandom(sample) * 100}%`,
+    top: `${starRandom(sample + 1) * 100}%`,
+    width: size,
+    height: size,
+    animationDelay: `${-starRandom(sample + 3) * 13}s`,
+    animationDuration: `${5 + starRandom(sample + 4) * 7}s`,
   } satisfies CSSProperties;
 });
 
