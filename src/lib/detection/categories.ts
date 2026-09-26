@@ -27,7 +27,7 @@ export function applyMaintainerCategoryOverride(base: CategoryResult[], override
   if (override.status === WantedHelpStatus.NOT_LOOKING) return [];
   const selected = HELP_TAGS.filter((tag) => override.skillsWanted?.includes(tag.label)).map((tag) => tag.id);
   const categories = selected.length
-    ? [...selected, ...requested[override.status].filter((category) => category === HelpCategory.MAINTAINER || category === HelpCategory.CO_MAINTAINER)]
+    ? [...selected, ...requested[override.status].filter((category) => category !== HelpCategory.CODE)]
     : requested[override.status];
   return [...new Set(categories)].map((category) => ({ category, verified: true }));
 }

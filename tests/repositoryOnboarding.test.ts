@@ -47,5 +47,6 @@ it("keeps failed submissions editable and celebrates only after a successful ret
 
 it("retains explicit tags during reanalysis and clears them when no longer looking", () => {
   expect(applyMaintainerCategoryOverride([], { status: "NEED_COMAINTAINERS", skillsWanted: ["Docs", "Design"] }).map((c) => c.category)).toEqual(["DOCUMENTATION", "DESIGN", "MAINTAINER", "CO_MAINTAINER"]);
+  expect(applyMaintainerCategoryOverride([], { status: "NEED_PR_REVIEWERS", skillsWanted: ["Docs"] }).map((c) => c.category)).toEqual(["DOCUMENTATION", "PR_REVIEW"]);
   expect(applyMaintainerCategoryOverride([], { status: "NOT_LOOKING", skillsWanted: ["Docs"] })).toEqual([]);
 });
