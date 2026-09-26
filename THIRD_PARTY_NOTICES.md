@@ -32,8 +32,8 @@ SOFTWARE.
 ## UI Lab
 
 `src/components/home/hero-headline.tsx` and its CSS module adapt Typewriter's
-select-and-retype rhythm and caret, with responsive phrase sizing, a pause
-control, and a static reduced-motion alternative.
+select-and-retype rhythm and caret, with responsive phrase sizing and a
+static reduced-motion alternative.
 
 - https://lab.xevrion.dev/lab/typewriter
 
