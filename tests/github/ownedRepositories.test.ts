@@ -17,7 +17,7 @@ import { POST } from "@/app/api/repositories/analyze/route";
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.auth.mockResolvedValue({ user: { id: "local-id", githubId: "42" } });
+  mocks.auth.mockResolvedValue({ user: { id: "local-id", githubId: "42", githubLogin: "alice" } });
   mocks.token.mockResolvedValue("user-token");
   mocks.ingest.mockResolvedValue({ owner: "alice", name: "project" });
 });
@@ -74,15 +74,15 @@ it("rejects forged selections of private or other users' repositories", async ()
 });
 
 it.each(["admin", "maintain"])("adds public organization repos with GitHub-confirmed %s access", async (permission) => {
-  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 99 }, permissions: { [permission]: true } } });
+  mocks.get.mockResolvedValue({ data: { id: 123, private: false, owner: { id: 99 }, permissions: { [permission]: true } } });
   expect((await submit()).status).toBe(200);
-  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id" });
+  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id", verifiedMaintainer: { githubId: 123, userId: "local-id", githubLogin: "alice" } });
 });
 
 it("adds an owned public repository using the authenticated local identity", async () => {
-  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
+  mocks.get.mockResolvedValue({ data: { id: 123, private: false, owner: { id: 42 } } });
   expect((await submit()).status).toBe(200);
-  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id" });
+  expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id", verifiedMaintainer: { githubId: 123, userId: "local-id", githubLogin: "alice" } });
 });
 
 const onboarding = { status: "NEED_CONTRIBUTORS", message: " Help with guides ", tags: ["DOCUMENTATION", "DESIGN"] };
@@ -96,7 +96,7 @@ it("validates onboarding before ingesting a repository", async () => {
 });
 
 it("saves the message and chosen tags before returning success", async () => {
-  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
+  mocks.get.mockResolvedValue({ data: { id: 123, private: false, owner: { id: 42 } } });
   mocks.save.mockResolvedValue({ error: null });
   expect((await submit(onboarding)).status).toBe(200);
   const [owner, repo, form] = mocks.save.mock.calls[0];
@@ -105,7 +105,7 @@ it("saves the message and chosen tags before returning success", async () => {
 });
 
 it("does not report completion if the help request cannot be saved", async () => {
-  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
+  mocks.get.mockResolvedValue({ data: { id: 123, private: false, owner: { id: 42 } } });
   mocks.save.mockResolvedValue({ error: "Your GitHub access changed. Please try again." });
   const response = await submit(onboarding);
   expect(response.status).toBe(400);

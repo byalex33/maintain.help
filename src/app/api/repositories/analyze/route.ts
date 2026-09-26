@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     const alreadyIndexed = await repositoryExists(parsed.owner, parsed.repo);
     const repository = await ingestRepository(parsed.owner, parsed.repo, {
       submittedById: session.user.id,
+      verifiedMaintainer: { githubId: data.id, userId: session.user.id, githubLogin: session.user.githubLogin },
     });
     if (onboarding?.success) {
       const form = new FormData();

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect, permanentRedirect } from "next/navigation";
 
+import { db } from "@/lib/db";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
+import { claimValidSince } from "@/lib/claims";
 import { checkClaimPermission } from "@/lib/github/permissions";
 import { getRepositoryDetail } from "@/lib/queries/repositories";
 import { ClaimForm } from "@/components/claim/claim-form";
@@ -32,12 +34,17 @@ export default async function ClaimPage({ params }: { params: Promise<ClaimPageP
   const permission =
     username && accessToken ? await checkClaimPermission(accessToken, owner, repo, session.user.githubId, repository.githubId) : { eligible: false, permission: null };
 
+  const alreadyClaimed = permission.eligible && Boolean(await db.repositoryMaintainer.findFirst({
+    where: { repositoryId: repository.id, userId: session.user.id, verifiedAt: { gte: claimValidSince() } },
+    select: { id: true },
+  }));
+
   const boundAction = submitMaintainerRequest.bind(null, owner, repo);
   const existingRequest = repository.maintainerRequests[0];
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Claim {repository.fullName}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{alreadyClaimed ? "Manage help status for" : "Claim"} {repository.fullName}</h1>
       <p className="mt-2 text-neutral-600 dark:text-neutral-400">
         Once your GitHub access is verified, your input here overrides our inferred status.
       </p>

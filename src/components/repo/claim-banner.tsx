@@ -11,11 +11,13 @@ export function ClaimBanner({
   repo,
   activeRequest,
   isSignedIn,
+  isVerifiedMaintainer = false,
 }: {
   owner: string;
   repo: string;
   activeRequest: (MaintainerRequest & { user: User }) | null;
   isSignedIn: boolean;
+  isVerifiedMaintainer?: boolean;
 }) {
   if (activeRequest) {
     return (
@@ -35,6 +37,23 @@ export function ClaimBanner({
         ) : null}
         <Button asChild size="sm" variant="outline" className="self-start">
           <Link href={`/${owner}/${repo}/claim`}>Update help status</Link>
+        </Button>
+      </Card>
+    );
+  }
+
+  if (isVerifiedMaintainer) {
+    return (
+      <Card className="rounded-2xl flex flex-col items-start gap-2 p-4">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <BadgeCheck className="size-4" />
+          You are a verified maintainer
+        </div>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Set the current help status when you are ready. Until then, the listing uses our analysis.
+        </p>
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/${owner}/${repo}/claim`}>Manage help status</Link>
         </Button>
       </Card>
     );
