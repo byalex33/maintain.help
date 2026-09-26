@@ -2,13 +2,20 @@ import Link from "next/link";
 import { Compass, Plus, Search } from "lucide-react";
 
 import { AccountMenu } from "@/components/layout/account-menu";
+import { LikeBanner, Notifications } from "@/components/layout/notifications";
+import { getNotifications } from "@/lib/queries/notifications";
 import { auth, isAdminGitHubId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 export async function SiteHeader() {
   const session = await auth();
+  const notifications = session?.user ? await getNotifications(session.user.id) : [];
+
+  const latestUnread = notifications.find((notification) => notification.unread) ?? null;
 
   return (
+    <>
+    {session?.user ? <LikeBanner key={session.user.id} latest={latestUnread} /> : null}
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/90 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90">
       <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-2 px-4 py-2 sm:gap-4">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
@@ -30,6 +37,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {session?.user ? <Notifications key={session.user.id} items={notifications} /> : null}
           {session?.user ? (
             <Button asChild variant="outline" size="icon">
               <Link href="/add" aria-label="Add a repository" title="Add a repository">
@@ -48,5 +56,6 @@ export async function SiteHeader() {
         </div>
       </div>
     </header>
+    </>
   );
 }

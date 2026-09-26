@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { claimValidSince } from "@/lib/claims";
 
 export async function setRepositoryUpvoted(repositoryId: string, upvoted: boolean) {
   const session = await auth();
@@ -22,8 +23,21 @@ export async function setRepositoryUpvoted(repositoryId: string, upvoted: boolea
 
     const key = { userId: session.user.id, repositoryId };
     // Explicit desired state and a unique key make retries safe.
-    if (upvoted) await tx.repositoryUpvote.createMany({ data: [key], skipDuplicates: true });
-    else await tx.repositoryUpvote.deleteMany({ where: key });
+    if (upvoted) {
+      const created = await tx.repositoryUpvote.createMany({ data: [key], skipDuplicates: true });
+      if (created.count) {
+        const maintainers = await tx.repositoryMaintainer.findMany({
+          where: { repositoryId, verifiedAt: { gte: claimValidSince() }, userId: { not: session.user.id } },
+          select: { userId: true },
+        });
+        const recipients = [...new Set(maintainers.flatMap(({ userId }) => userId ? [userId] : []))];
+        if (recipients.length) await tx.repositoryLikeNotification.createMany({
+          data: recipients.map((recipientId) => ({ recipientId, actorId: session.user.id, repositoryId })),
+          // Retain history on unlike; re-liking must not generate repeated alerts.
+          skipDuplicates: true,
+        });
+      }
+    } else await tx.repositoryUpvote.deleteMany({ where: key });
     return eligible;
   });
   if (!repository) return { error: "This repository is no longer available." };
