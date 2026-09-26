@@ -31,6 +31,12 @@ SOFTWARE.
 
 ## UI Lab
 
+`src/components/home/hero-headline.tsx` and its CSS module adapt Typewriter's
+select-and-retype rhythm and caret, with responsive phrase sizing, a pause
+control, and a static reduced-motion alternative.
+
+- https://lab.xevrion.dev/lab/typewriter
+
 `src/components/ui/notification-bell.tsx` adapts Notification Bell (ringing bell,
 rolling unread badge, animated inbox) with server-driven read state and our theme.
 

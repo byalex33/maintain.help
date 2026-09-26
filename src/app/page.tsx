@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { HeroSearch } from "@/components/home/hero-search";
+import { HeroHeadline } from "@/components/home/hero-headline";
 import { HeroStars } from "@/components/home/hero-stars";
 import { FeaturedRepository } from "@/components/home/featured-repository";
 import { RepoSection } from "@/components/repo/repo-section";
@@ -18,11 +19,9 @@ export default async function HomePage() {
       <section className="relative isolate overflow-hidden border-b border-neutral-200 bg-neutral-50/60 dark:border-neutral-800 dark:bg-neutral-950">
         <HeroStars />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-16 text-center sm:py-24">
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Find open source that needs you.
-          </h1>
+          <HeroHeadline />
           <p className="max-w-xl text-lg text-neutral-600 dark:text-neutral-400">
-            Discover projects looking for contributors, reviewers, maintainers, documentation help, and more.
+            Good projects need good people. Find your next contribution, meet fellow maintainers, and build open source together.
           </p>
 
           <HeroSearch />
