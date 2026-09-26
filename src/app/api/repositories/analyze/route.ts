@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
 
+import { HELP_TAGS, onboardingSchema } from "@/lib/repositoryOnboarding";
+import { saveMaintainerRequest } from "@/lib/saveMaintainerRequest";
 import { parseGitHubRepoUrl } from "@/lib/github/parseUrl";
 import { repositoryExists } from "@/lib/queries/repositories";
 import { ingestRepository, RepositoryModerationError, RepositoryAnalysisBusyError } from "@/lib/ingest";
@@ -22,6 +24,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const onboarding = body?.onboarding === undefined ? null : onboardingSchema.safeParse(body.onboarding);
+  if (onboarding && !onboarding.success) {
+    return NextResponse.json({ error: "Complete your help request and select at least one valid tag." }, { status: 400 });
+  }
+
   try {
     const token = await getGitHubAccessToken(session.user.id);
     if (!token) return NextResponse.json({ error: "Sign in again to reconnect GitHub." }, { status: 403 });
@@ -34,6 +41,14 @@ export async function POST(req: NextRequest) {
     const repository = await ingestRepository(parsed.owner, parsed.repo, {
       submittedById: session.user.id,
     });
+    if (onboarding?.success) {
+      const form = new FormData();
+      form.set("status", onboarding.data.status);
+      form.set("message", onboarding.data.message);
+      form.set("skills", HELP_TAGS.filter((tag) => onboarding.data.tags.includes(tag.id)).map((tag) => tag.label).join(","));
+      const result = await saveMaintainerRequest(repository.owner, repository.name, form);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+    }
     return NextResponse.json({ owner: repository.owner, repo: repository.name, existed: alreadyIndexed });
   } catch (err) {
     if (err instanceof RepositoryModerationError || err instanceof GitHubPrivateRepositoryError) return NextResponse.json({ error: err.message }, { status: 403 });

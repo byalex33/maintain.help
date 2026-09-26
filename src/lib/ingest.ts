@@ -126,7 +126,7 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
     }
     const activeRequest = existing?.maintainerRequests[0] ?? null;
     const analysis = analyzeRepository(raw, {
-      maintainerOverride: activeRequest ? { status: activeRequest.status, message: activeRequest.message } : null,
+      maintainerOverride: activeRequest ? { status: activeRequest.status, message: activeRequest.message, skillsWanted: activeRequest.skillsWanted } : null,
     });
 
     const values = {
