@@ -38,7 +38,7 @@ export function ActivityTimeline({ events, lastAnalyzedAt }: { events: Repositor
     <section aria-label="Activity timeline" className="mt-6 border border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900">
       <div className="border-b border-neutral-300 px-5 py-4 dark:border-neutral-700">
         <h3 className="text-sm font-semibold">Activity timeline</h3>
-        <p className="mt-1 text-xs leading-5 text-neutral-600 dark:text-neutral-400">Stored release, push and classification milestones. Refreshed when this repository is analysed.</p>
+        <p className="mt-1 text-xs leading-5 text-neutral-600 dark:text-neutral-400">Latest release and push, plus up to 20 recent classification records. Refreshed when this repository is analysed.</p>
         {lastAnalyzedAt ? <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">Last analysed <time dateTime={lastAnalyzedAt}>{dateFormat.format(new Date(lastAnalyzedAt))} UTC</time></p> : null}
       </div>
       {events.length ? <ol id={listId} className="px-5 py-5">
@@ -53,7 +53,7 @@ export function ActivityTimeline({ events, lastAnalyzedAt }: { events: Repositor
           </div>
         </li>)}
       </ol> : <p className="px-5 py-6 text-sm text-neutral-600 dark:text-neutral-400">No activity milestones have been recorded yet.</p>}
-      {events.length > 5 ? <div className="border-t border-neutral-300 px-5 py-3 dark:border-neutral-700"><button type="button" aria-expanded={expanded} aria-controls={listId} onClick={() => setExpanded(!expanded)} className="text-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">{expanded ? "Show less" : `Show all ${events.length} milestones`}</button></div> : null}
+      {events.length > 5 ? <div className="border-t border-neutral-300 px-5 py-3 dark:border-neutral-700"><button type="button" aria-expanded={expanded} aria-controls={listId} onClick={() => setExpanded(!expanded)} className="text-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4">{expanded ? "Show less" : `Show ${events.length - 5} more milestones`}</button></div> : null}
     </section>
   );
 }
