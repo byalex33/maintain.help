@@ -27,7 +27,7 @@ export default async function HomePage() {
 
           <HeroSearch />
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex w-full flex-wrap items-center justify-center gap-3">
             <Button asChild variant="outline">
               <Link href="/explore">Explore projects</Link>
             </Button>
