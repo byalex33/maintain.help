@@ -10,6 +10,17 @@ datasource db {
   provider = "postgresql"
 }
 
+/// One editable site-wide banner. Unpublishing retains the last message.
+model Announcement {
+  id        String   @id @default("site")
+  message   String   @db.VarChar(240)
+  linkLabel String?  @db.VarChar(60)
+  linkUrl   String?  @db.VarChar(2048)
+  published Boolean  @default(false)
+  revision  String   @default(uuid())
+  updatedAt DateTime @updatedAt
+}
+
 // ---------------------------------------------------------------------------
 // Clerk identity; legacy auth tables retained for a non-destructive migration.
 // ---------------------------------------------------------------------------

@@ -19,6 +19,8 @@ export function SiteFooter() {
           <Link href="/add" className="hover:text-neutral-900 dark:hover:text-neutral-200">
             Add a repository
           </Link>
+          <Link href="/terms" className="underline underline-offset-4">Terms of service</Link>
+          <Link href="/privacy" className="underline underline-offset-4">Privacy policy</Link>
           <a
             href="https://github.com/byalex33/maintain.help"
             className="ml-auto hover:text-neutral-900 dark:hover:text-neutral-200"

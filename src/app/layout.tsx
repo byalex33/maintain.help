@@ -6,6 +6,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/layout/header";
 import { SiteFooter } from "@/components/layout/footer";
 import { SignInToast } from "@/components/auth/sign-in-toast";
+import { SiteAnnouncement } from "@/components/layout/site-announcement";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <ClerkProvider appearance={{ elements: { footer: { display: "none" }, footerItem: { display: "none" } } }} signInUrl="/sign-in" signUpUrl="/sign-in" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
+          <SiteAnnouncement />
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
