@@ -17,7 +17,7 @@ export default async function HomePage() {
     <div>
       <section className="relative isolate overflow-hidden border-b border-neutral-200 bg-neutral-50/60 dark:border-neutral-800 dark:bg-neutral-950">
         <HeroStars />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:py-24">
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-16 text-center sm:py-24">
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
             Find open source that needs you.
           </h1>
@@ -27,7 +27,7 @@ export default async function HomePage() {
 
           <HeroSearch />
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex w-full flex-wrap items-center justify-center gap-3">
             <Button asChild variant="outline">
               <Link href="/explore">Explore projects</Link>
             </Button>
