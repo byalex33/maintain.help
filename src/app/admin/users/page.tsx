@@ -41,6 +41,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     <nav aria-label="Admin sections" className="flex gap-2">
       <Button asChild variant="ghost" size="sm"><Link href="/admin">Repositories</Link></Button>
       <Button asChild variant="secondary" size="sm"><Link href="/admin/users" aria-current="page">Users</Link></Button>
+      <Link href="/admin/announcements" className="inline-flex items-center px-3 text-xs font-medium underline underline-offset-4">Announcements</Link>
     </nav>
     <form action="/admin/users" className="flex gap-2">
       <Input name="q" defaultValue={query} aria-label="Search users" placeholder="Search name, GitHub username, or email…" maxLength={200} />
