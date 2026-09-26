@@ -2,10 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn(), revalidate: vi.fn(), cookie: vi.fn() }));
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn(), revalidate: vi.fn(), updateTag: vi.fn(), cookie: vi.fn() }));
 vi.mock("@/lib/auth", async (original) => ({ ...await original<typeof import("@/lib/auth")>(), auth: mocks.auth }));
 vi.mock("@/lib/db", () => ({ db: { announcement: { upsert: mocks.upsert, updateMany: mocks.updateMany, findUnique: mocks.findUnique } } }));
-vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate, updateTag: mocks.updateTag, unstable_cache: (fn: unknown) => fn }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: mocks.cookie }) }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("Not found"); } }));
 
@@ -50,6 +50,7 @@ describe("admin publishing", () => {
     await saveAnnouncement(state, form());
     expect(mocks.upsert.mock.calls[1][0].update.revision).not.toBe(first.update.revision);
     expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+    expect(mocks.updateTag).toHaveBeenCalledWith("site-announcement");
   });
 
   it("allows messages without links and unpublishes without deleting the message", async () => {
@@ -57,6 +58,7 @@ describe("admin publishing", () => {
     expect(mocks.upsert.mock.calls[0][0].update).toMatchObject({ linkLabel: null, linkUrl: null });
     await saveAnnouncement(state, form({ intent: "unpublish", message: "" }));
     expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id: "site" }, data: { published: false } });
+    expect(mocks.updateTag).toHaveBeenCalledTimes(2);
   });
 
   it("rejects malformed submissions and unsafe links without writing", async () => {
@@ -69,12 +71,14 @@ describe("admin publishing", () => {
     expect((await saveAnnouncement(state, file)).error).toBeTruthy();
     expect(mocks.upsert).not.toHaveBeenCalled();
     expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.updateTag).not.toHaveBeenCalled();
   });
 
   it("reports storage failures without claiming success or exposing database errors", async () => {
     mocks.upsert.mockRejectedValue(new Error("secret database details"));
     expect(await saveAnnouncement(state, form())).toEqual({ error: "The announcement could not be saved. Please try again.", success: null });
     expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.updateTag).not.toHaveBeenCalled();
   });
 });
 

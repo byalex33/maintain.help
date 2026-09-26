@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { auth, isAdminGitHubId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { announcementSchema, type AnnouncementState } from "@/lib/announcements";
@@ -34,6 +34,7 @@ export async function saveAnnouncement(_state: AnnouncementState, formData: Form
   } catch {
     return { error: "The announcement could not be saved. Please try again.", success: null };
   }
+  updateTag("site-announcement");
   revalidatePath("/", "layout");
   return { error: null, success: intent === "publish" ? "Announcement published." : "Announcement unpublished. Your message is kept for later." };
 }
