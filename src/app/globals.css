@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+.announcement-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 260ms ease, opacity 200ms ease;
+}
+.announcement-collapse[data-dismissed="true"] { grid-template-rows: 0fr; opacity: 0; }
+.announcement-bar { background: #e7e3d9; color: #24241f; font-family: Arial, Helvetica, sans-serif; }
+@media (prefers-color-scheme: dark) {
+  .announcement-bar { background: #dedacf; color: #24241f; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .announcement-collapse { transition: none; }
+}
+
 @keyframes like-particle {
   from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   to { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.2); opacity: 0; }

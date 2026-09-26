@@ -41,6 +41,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <nav aria-label="Admin sections" className="flex gap-2">
       <Button asChild variant="secondary" size="sm"><Link href="/admin" aria-current="page">Repositories</Link></Button>
       <Button asChild variant="ghost" size="sm"><Link href="/admin/users">Users</Link></Button>
+      <Link href="/admin/announcements" className="inline-flex items-center px-3 text-xs font-medium underline underline-offset-4">Announcements</Link>
     </nav>
     <Card className="space-y-4 p-4 sm:p-5">
       <nav aria-label="Repository views" className="flex flex-wrap gap-1">
