@@ -10,6 +10,7 @@ const PHRASES = [
   "your kind of people.",
   "fellow maintainers.",
   "a place to contribute.",
+  "a place to launch your project.",
 ];
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 function subscribeToMotion(onChange: () => void) {
@@ -46,7 +47,7 @@ export function HeroHeadline() {
   return (
     <div className="relative w-full max-w-4xl">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-        <span className="sr-only">Find your next project, your kind of people, fellow maintainers, or a place to contribute.</span>
+        <span className="sr-only">Find your next project, your kind of people, fellow maintainers, a place to contribute, or a place to launch your project.</span>
         <span aria-hidden="true" className={styles.words} data-phase={reducedMotion ? "hold" : frame.phase}>
           {/* Reserve every phrase, including its wrapped height on small screens. */}
           {PHRASES.map((word) => <span key={word} className={styles.reserve}>Find {word}<span className={styles.caret} /></span>)}
