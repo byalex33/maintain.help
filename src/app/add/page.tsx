@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { AddRepositoryForm } from "@/components/add/add-repository-form";
+import { RepositoryOnboarding } from "@/components/add/repository-onboarding";
 import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { getAddablePublicRepositories, getGitHubOrganizations } from "@/lib/github/ownedRepositories";
 
@@ -42,10 +42,10 @@ export default async function AddRepositoryPage() {
     error = "We couldn't load your GitHub repositories. Please try again shortly.";
   }
   return (
-    <div className="mx-auto max-w-xl px-4 py-16">
+    <div className="onboarding-page mx-auto max-w-2xl px-4 py-12 sm:py-20">
       <h1 className="text-2xl font-semibold tracking-tight">Add a repository</h1>
       <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-        Choose a public repository you own or have admin or maintainer access to, including organization repositories.
+        A little context helps the right contributors find you.
       </p>
       <div className="mt-6">
         {error ? (
@@ -56,7 +56,7 @@ export default async function AddRepositoryPage() {
               <Button type="submit" variant="link" className="h-auto p-0">Try again</Button>
             </form>
           </div>
-        ) : <AddRepositoryForm repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} needsOrganizationAccess={needsOrganizationAccess} />}
+        ) : <RepositoryOnboarding repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} needsOrganizationAccess={needsOrganizationAccess} />}
       </div>
     </div>
   );

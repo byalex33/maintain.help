@@ -1,7 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), token: vi.fn(), get: vi.fn(), paginate: vi.fn(), ingest: vi.fn(), exists: vi.fn() }));
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), token: vi.fn(), get: vi.fn(), paginate: vi.fn(), ingest: vi.fn(), exists: vi.fn(), save: vi.fn() }));
+vi.mock("@/lib/saveMaintainerRequest", () => ({ saveMaintainerRequest: mocks.save }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth, getGitHubAccessToken: mocks.token }));
 vi.mock("@octokit/rest", () => ({ Octokit: class {
   repos = { get: mocks.get, listForAuthenticatedUser: "list" };
@@ -21,9 +22,9 @@ beforeEach(() => {
   mocks.ingest.mockResolvedValue({ owner: "alice", name: "project" });
 });
 
-function submit() {
+function submit(onboarding?: unknown) {
   return POST(new NextRequest("http://localhost/api/repositories/analyze", {
-    method: "POST", body: JSON.stringify({ url: "https://github.com/alice/project" }),
+    method: "POST", body: JSON.stringify({ url: "https://github.com/alice/project", onboarding }),
   }));
 }
 
@@ -82,4 +83,31 @@ it("adds an owned public repository using the authenticated local identity", asy
   mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
   expect((await submit()).status).toBe(200);
   expect(mocks.ingest).toHaveBeenCalledWith("alice", "project", { submittedById: "local-id" });
+});
+
+const onboarding = { status: "NEED_CONTRIBUTORS", message: " Help with guides ", tags: ["DOCUMENTATION", "DESIGN"] };
+
+it("validates onboarding before ingesting a repository", async () => {
+  for (const invalid of [{ ...onboarding, tags: [] }, { ...onboarding, tags: ["INVALID"] }, { ...onboarding, message: " " }, { ...onboarding, message: "x".repeat(2001) }]) {
+    expect((await submit(invalid)).status).toBe(400);
+  }
+  expect(mocks.ingest).not.toHaveBeenCalled();
+  expect(mocks.save).not.toHaveBeenCalled();
+});
+
+it("saves the message and chosen tags before returning success", async () => {
+  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
+  mocks.save.mockResolvedValue({ error: null });
+  expect((await submit(onboarding)).status).toBe(200);
+  const [owner, repo, form] = mocks.save.mock.calls[0];
+  expect([owner, repo]).toEqual(["alice", "project"]);
+  expect(Object.fromEntries(form.entries())).toEqual({ status: "NEED_CONTRIBUTORS", message: "Help with guides", skills: "Docs,Design" });
+});
+
+it("does not report completion if the help request cannot be saved", async () => {
+  mocks.get.mockResolvedValue({ data: { private: false, owner: { id: 42 } } });
+  mocks.save.mockResolvedValue({ error: "Your GitHub access changed. Please try again." });
+  const response = await submit(onboarding);
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ error: "Your GitHub access changed. Please try again." });
 });

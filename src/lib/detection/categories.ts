@@ -1,3 +1,4 @@
+import { HELP_TAGS } from "../repositoryOnboarding";
 import { HelpCategory, WantedHelpStatus } from "@/generated/prisma/enums";
 import type { MaintainerOverrideInput } from "./status";
 import type { RawRepositoryData } from "../github/types";
@@ -23,7 +24,12 @@ export function applyMaintainerCategoryOverride(base: CategoryResult[], override
     NOT_LOOKING: [],
   };
   // The maintainer's current request replaces inferred or previously requested help.
-  return requested[override.status].map((category) => ({ category, verified: true }));
+  if (override.status === WantedHelpStatus.NOT_LOOKING) return [];
+  const selected = HELP_TAGS.filter((tag) => override.skillsWanted?.includes(tag.label)).map((tag) => tag.id);
+  const categories = selected.length
+    ? [...selected, ...requested[override.status].filter((category) => category === HelpCategory.MAINTAINER || category === HelpCategory.CO_MAINTAINER)]
+    : requested[override.status];
+  return [...new Set(categories)].map((category) => ({ category, verified: true }));
 }
 
 export const LABEL_CATEGORY_RULES: { pattern: RegExp; category: HelpCategory }[] = [

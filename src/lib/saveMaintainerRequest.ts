@@ -1,0 +1,153 @@
+import "server-only";
+
+import { revalidatePath } from "next/cache";
+
+import { auth, getGitHubAccessToken } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { checkClaimPermission } from "@/lib/github/permissions";
+import { applyMaintainerOverride } from "@/lib/detection/status";
+import { applyMaintainerCategoryOverride } from "@/lib/detection/categories";
+import { WantedHelpStatus } from "@/generated/prisma/enums";
+import { repositoryNameFilter } from "@/lib/repositoryIdentity";
+
+export interface ClaimFormState {
+  error: string | null;
+}
+
+export async function saveMaintainerRequest(
+  owner: string,
+  repo: string,
+  formData: FormData
+): Promise<ClaimFormState> {
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "You must be signed in to claim a repository." };
+  }
+
+  const username = session.user.githubLogin;
+  if (!username) {
+    return { error: "Could not determine your GitHub username. Please sign in again." };
+  }
+
+  const accessToken = await getGitHubAccessToken(session.user.id);
+  if (!accessToken) {
+    return { error: "Your GitHub session has expired. Please sign in again." };
+  }
+
+  const repository = await db.repository.findFirst({ where: repositoryNameFilter(owner, repo) });
+  if (!repository || !repository.isIndexed || repository.isLocked) {
+    return { error: "This repository is unavailable or locked by a moderator." };
+  }
+
+  const permission = await checkClaimPermission(accessToken, owner, repo, session.user.githubId, repository.githubId);
+  if (!permission.eligible) {
+    return {
+      error: permission.permission === null
+        ? "We couldn't verify your GitHub access. Please try again, or sign in again to reconnect GitHub."
+        : `GitHub reports your permission on ${owner}/${repo} as "${permission.permission}". Claiming requires owner, admin or maintain access.`,
+    };
+  }
+
+  const status = formData.get("status");
+  if (typeof status !== "string" || !Object.values(WantedHelpStatus).includes(status as WantedHelpStatus)) {
+    return { error: "Please choose a valid status." };
+  }
+  const messageInput = formData.get("message") ?? "";
+  const skillsInput = formData.get("skills") ?? "";
+  if (typeof messageInput !== "string" || typeof skillsInput !== "string") {
+    return { error: "Message and skills must be text." };
+  }
+  if (messageInput.length > 2000 || skillsInput.length > 1000) {
+    return { error: "Use at most 2,000 characters for your message and 1,000 for skills." };
+  }
+  const message = messageInput.trim() || null;
+  const skillsWanted = skillsInput
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (skillsWanted.length > 15 || skillsWanted.some((skill) => skill.length > 50)) {
+    return { error: "Use at most 15 skills, each no longer than 50 characters." };
+  }
+
+  const overridden = applyMaintainerOverride(
+    {
+      status: repository.status,
+      confidence: repository.statusConfidence,
+      verified: repository.statusVerified,
+      reason: repository.statusReason ?? "",
+    },
+    { status: status as WantedHelpStatus, message }
+  );
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Repository" WHERE id = ${repository.id} FOR UPDATE`;
+      await tx.repository.update({
+        where: { id: repository.id, githubId: repository.githubId, isIndexed: true, isLocked: false },
+        data: {
+          status: overridden.status,
+          statusConfidence: overridden.confidence,
+          statusVerified: overridden.verified,
+          statusReason: overridden.reason,
+        },
+      });
+
+      await tx.repositoryStatus.create({
+        data: {
+          repositoryId: repository.id,
+          status: overridden.status,
+          confidence: overridden.confidence,
+          verified: overridden.verified,
+          reason: overridden.reason,
+        },
+      });
+
+      const categories = applyMaintainerCategoryOverride(
+        await tx.repositoryHelpCategory.findMany({ where: { repositoryId: repository.id } }),
+        { status: status as WantedHelpStatus, message, skillsWanted }
+      );
+      await tx.repositoryHelpCategory.deleteMany({ where: { repositoryId: repository.id } });
+      if (categories.length) {
+        await tx.repositoryHelpCategory.createMany({
+          data: categories.map(({ category, verified }) => ({ repositoryId: repository.id, category, verified })),
+        });
+      }
+
+      await tx.maintainerRequest.updateMany({
+        where: { repositoryId: repository.id, isActive: true },
+        data: { isActive: false },
+      });
+
+      await tx.maintainerRequest.create({
+        data: {
+          repositoryId: repository.id,
+          userId: session.user.id,
+          status: status as WantedHelpStatus,
+          message,
+          skillsWanted,
+          isActive: true,
+        },
+      });
+
+      await tx.repositoryMaintainer.upsert({
+        where: { repositoryId_githubLogin: { repositoryId: repository.id, githubLogin: username } },
+        create: {
+          repositoryId: repository.id,
+          githubLogin: username,
+          userId: session.user.id,
+          role: "maintainer",
+          isActive: true,
+          verifiedAt: new Date(),
+        },
+        update: { userId: session.user.id, verifiedAt: new Date(), isActive: true },
+      });
+
+    });
+  } catch {
+    return { error: "The claim could not be saved. The repository may have been locked or removed. Please try again." };
+  }
+
+  revalidatePath(`/${repository.owner}/${repository.name}`);
+  revalidatePath("/explore");
+  return { error: null };
+}

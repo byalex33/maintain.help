@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
 
 import { isGitHubProvider } from "@/lib/github/provider";
 import { connectGitHubOrganizationsAutomatically } from "@/lib/github/organizationAccess";
@@ -11,7 +10,8 @@ import { connectGitHubOrganizationsAutomatically } from "@/lib/github/organizati
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export function AddRepositoryForm({ repositories, organizations = [], personalLogin, organizationsUnavailable = false, needsOrganizationAccess = false }: {
+export function AddRepositoryForm({ repositories, organizations = [], personalLogin, organizationsUnavailable = false, needsOrganizationAccess = false, onSelect }: {
+  onSelect?: (url: string) => void;
   repositories: { id: number; fullName: string; description: string | null; url: string }[];
   organizations?: string[];
   personalLogin?: string;
@@ -22,8 +22,6 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
   const { user } = useUser();
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const owners = [...new Set([
@@ -62,34 +60,8 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
     }
   }, [needsOrganizationAccess, user, connectOrganizations]);
 
-  async function addRepository(repository: typeof repositories[number]) {
-    setSelectedId(repository.id);
-    setStatus("loading");
-    setError(null);
-
-    try {
-      const res = await fetch("/api/repositories/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: repository.url }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setStatus("error");
-        setError(data.error ?? "Something went wrong.");
-        return;
-      }
-
-      router.push(`/${data.owner}/${data.repo}`);
-    } catch {
-      setStatus("error");
-      setError("Network error — please try again.");
-    }
-  }
-
   return (
-    <div className="flex flex-col gap-3" aria-busy={status === "loading"}>
+    <div className="flex flex-col gap-3">
       <Input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -133,10 +105,7 @@ export function AddRepositoryForm({ repositories, organizations = [], personalLo
               <p className="break-words font-medium">{repo.fullName}</p>
               {repo.description ? <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{repo.description}</p> : null}
             </div>
-            <Button onClick={() => addRepository(repo)} disabled={status === "loading"} aria-label={`Add ${repo.fullName}`}>
-              {status === "loading" && selectedId === repo.id ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
-              {status === "loading" && selectedId === repo.id ? "Adding…" : "Add"}
-            </Button>
+            <Button type="button" onClick={() => onSelect?.(repo.url)} aria-label={`Choose ${repo.fullName}`}>Choose</Button>
           </li>
         ))}
       </ul>

@@ -96,6 +96,7 @@ export function determineStatus(
 export interface MaintainerOverrideInput {
   status: WantedHelpStatus;
   message?: string | null;
+  skillsWanted?: string[];
 }
 
 const WANTED_TO_HELP_STATUS: Partial<Record<WantedHelpStatus, HelpStatus>> = {

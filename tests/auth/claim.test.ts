@@ -81,3 +81,12 @@ it("rejects mismatched GitHub permission checks without writing", async () => {
   expect((await submit()).error).toBeTruthy();
   expect(mocks.lock).not.toHaveBeenCalled();
 });
+
+it("publishes selected onboarding tags as verified categories", async () => {
+  await expect(submit("skills", "Docs,Design,PR review", "NEED_CONTRIBUTORS")).rejects.toThrow("redirect");
+  expect(mocks.createCategories).toHaveBeenCalledWith({ data: [
+    { repositoryId: "repository", category: "DOCUMENTATION", verified: true },
+    { repositoryId: "repository", category: "DESIGN", verified: true },
+    { repositoryId: "repository", category: "PR_REVIEW", verified: true },
+  ] });
+});

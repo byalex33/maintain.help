@@ -159,3 +159,61 @@ body {
   .featured-repository { animation: none; transition: none; }
   .featured-repository:hover { transform: none; }
 }
+
+.onboarding-page { font-family: "Avenir Next", "Segoe UI", sans-serif; }
+.repo-onboarding { background: #f4f2ed; color: #282c28; border: 1px solid #d8d9d1; }
+.onboarding-progress { display: flex; justify-content: space-between; align-items: center; padding: 24px 28px 0; color: #62685e; font-size: 12px; }
+.onboarding-progress ol { display: flex; gap: 6px; list-style: none; padding: 0; }
+.onboarding-progress li { width: 32px; height: 3px; background: #d7dad0; }
+.onboarding-progress li[data-complete] { background: #526348; }
+.onboarding-step { padding: 28px; animation: onboarding-enter 240ms ease-out; }
+.onboarding-eyebrow { color: #62685e; text-transform: uppercase; font-size: 10px; letter-spacing: .14em; margin-bottom: 10px; font-weight: 600; }
+.repo-onboarding h2 { font-size: clamp(22px, 4vw, 28px); font-weight: 600; letter-spacing: -.04em; line-height: 1.2; outline: none; }
+.onboarding-description { color: #62685e; font-size: 14px; line-height: 1.6; margin: 12px 0 26px; }
+.onboarding-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+.onboarding-url { display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 1px solid #bfc4b6; background: #eaece4; }
+.onboarding-url input { padding: 14px 0; background: transparent; outline: none; min-width: 0; width: 100%; font-size: 14px; }
+.onboarding-url:focus-within { outline: 2px solid #526348; outline-offset: 3px; }
+.onboarding-picker { border-top: 1px solid #d8d9d1; margin-top: 24px; padding-top: 20px; font-size: 13px; }
+.onboarding-picker summary { cursor: pointer; }
+.onboarding-picker button, .onboarding-picker input { border-radius: 0; box-shadow: none; transition: none; }
+.onboarding-picker ul { max-height: 260px; overflow: auto; }
+.onboarding-intentions { display: grid; gap: 8px; margin-bottom: 24px; }
+.onboarding-intentions label { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid #d0d3c9; cursor: pointer; }
+.repo-onboarding input[type="radio"], .repo-onboarding input[type="checkbox"] { accent-color: #526348; width: 15px; height: 15px; flex-shrink: 0; }
+.repo-onboarding strong { display: block; font-size: 13px; font-weight: 600; }
+.repo-onboarding small { display: block; font-size: 11px; color: #62685e; margin-top: 3px; }
+.repo-onboarding label[data-selected="true"] { border-color: #526348; background: #e3e7dc; }
+.repo-onboarding textarea { width: 100%; resize: vertical; padding: 12px; border: 1px solid #bfc4b6; font-size: 13px; line-height: 1.6; background: #eaece4; border-radius: 0; }
+.repo-onboarding textarea:focus-visible, .repo-onboarding button:focus-visible, .repo-onboarding a:focus-visible, .repo-onboarding summary:focus-visible { outline: 2px solid #526348; outline-offset: 4px; }
+.onboarding-hint { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #62685e; margin-top: 8px; line-height: 1.6; }
+.onboarding-tags { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.onboarding-tags label { position: relative; display: flex; align-items: center; gap: 12px; padding: 18px 12px; border: 1px solid #d0d3c9; cursor: pointer; }
+.onboarding-tags input { position: absolute; right: 8px; top: 8px; }
+.onboarding-tags svg { flex-shrink: 0; color: #526348; }
+.onboarding-tags strong { padding-right: 14px; }
+.onboarding-summary { display: flex; align-items: center; gap: 8px; border-top: 1px solid #d8d9d1; margin-top: 24px; padding-top: 18px; font-size: 12px; }
+.onboarding-summary span:first-of-type { overflow-wrap: anywhere; min-width: 0; }
+.onboarding-summary span:last-child { margin-left: auto; white-space: nowrap; color: #62685e; }
+.onboarding-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 28px; border-top: 1px solid #d8d9d1; }
+.onboarding-button { display: inline-flex; gap: 12px; align-items: center; justify-content: center; background: #526348; color: #f4f2ed; padding: 12px 18px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.onboarding-back { display: flex; gap: 8px; align-items: center; font-size: 12px; cursor: pointer; }
+.repo-onboarding button:disabled { opacity: .5; cursor: not-allowed; }
+.onboarding-error { color: #a13627; margin-top: 18px; font-size: 13px; }
+.onboarding-saving { margin-top: 20px; font-size: 12px; }
+.onboarding-saving div { height: 8px; background: #d7dad0; margin-top: 10px; animation: onboarding-pulse 1.2s ease-in-out infinite alternate; }
+.onboarding-saving div + div { width: 65%; margin-bottom: 10px; }
+.onboarding-saving span { color: #62685e; font-size: 11px; }
+.onboarding-success { position: relative; padding: 44px 28px; text-align: center; overflow: hidden; }
+.onboarding-success-icon { width: 64px; height: 64px; display: grid; place-items: center; background: #e3e7dc; color: #526348; margin: 0 auto 24px; }
+.onboarding-success > p:not(.onboarding-eyebrow) { color: #62685e; font-size: 14px; margin: 16px auto 26px; max-width: 320px; line-height: 1.6; }
+.onboarding-confetti { position: absolute; left: 50%; top: 135px; pointer-events: none; }
+.onboarding-confetti i { position: absolute; width: 5px; height: 9px; opacity: 0; animation: onboarding-confetti 1100ms ease-out var(--delay) both; }
+.onboarding-legal { display: flex; justify-content: center; gap: 12px; padding: 14px; border-top: 1px solid #d8d9d1; color: #62685e; font-size: 10px; }
+.onboarding-legal a { text-decoration: underline; text-underline-offset: 3px; }
+@keyframes onboarding-enter { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes onboarding-pulse { to { opacity: .35; } }
+@keyframes onboarding-confetti { 0% { opacity: 1; transform: translate(0, 0) rotate(0deg); } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 100px)) rotate(var(--r)); } }
+@media (max-width: 480px) { .onboarding-step { padding: 24px 18px; } .onboarding-progress { padding: 20px 18px 0; } .onboarding-actions { padding: 18px; } .onboarding-actions > .onboarding-hint { max-width: 110px; } .onboarding-tags label { gap: 8px; padding: 24px 10px 14px; } .onboarding-tags small { font-size: 10px; } }
+@media (prefers-color-scheme: dark) { .repo-onboarding { background: #1e221e; color: #e4e7de; border-color: #3b4338; } .repo-onboarding small, .onboarding-description, .onboarding-hint, .onboarding-eyebrow, .onboarding-progress, .onboarding-success > p:not(.onboarding-eyebrow), .onboarding-legal, .onboarding-saving span, .onboarding-summary span:last-child { color: #a8b1a0; } .onboarding-url, .repo-onboarding textarea { background: #252c23; border-color: #515e48; } .onboarding-intentions label, .onboarding-tags label, .onboarding-actions, .onboarding-summary, .onboarding-picker, .onboarding-legal { border-color: #3b4338; } .repo-onboarding label[data-selected="true"], .onboarding-success-icon { background: #303e29; border-color: #a2b191; } .onboarding-tags svg, .onboarding-success-icon { color: #b7c4a8; } .onboarding-progress li { background: #3b4338; } .onboarding-progress li[data-complete] { background: #a2b191; } .onboarding-error { color: #eea28a; } }
+@media (prefers-reduced-motion: reduce) { .onboarding-step, .onboarding-saving div { animation: none; } .onboarding-confetti { display: none; } }
