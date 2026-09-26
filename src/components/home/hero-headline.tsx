@@ -22,11 +22,10 @@ const getServerMotion = () => true;
 
 export function HeroHeadline() {
   const reducedMotion = useSyncExternalStore(subscribeToMotion, getReducedMotion, getServerMotion);
-  const [paused, setPaused] = useState(false);
   const [frame, setFrame] = useState({ word: 0, length: PHRASES[0].length, phase: "hold" });
 
   useEffect(() => {
-    if (reducedMotion || paused) return;
+    if (reducedMotion) return;
     const delay = frame.phase === "hold" ? 2400 : frame.phase === "select" ? 620 :
       62 + (Math.sin(frame.length * 1.9 + frame.word * 2.7) * 0.5 + 0.5) * 64;
     const timer = setTimeout(() => {
@@ -40,7 +39,7 @@ export function HeroHeadline() {
       });
     }, delay);
     return () => clearTimeout(timer);
-  }, [frame, paused, reducedMotion]);
+  }, [frame, reducedMotion]);
 
   const phrase = reducedMotion ? PHRASES[0] : PHRASES[frame.word].slice(0, frame.length);
 
@@ -48,11 +47,11 @@ export function HeroHeadline() {
     <div className="relative w-full max-w-4xl">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
         <span className="sr-only">Find your next project, your kind of people, fellow maintainers, or a place to contribute.</span>
-        <span aria-hidden="true" className="block">Find</span>
-        <span aria-hidden="true" className={styles.words} data-phase={reducedMotion ? "hold" : frame.phase} data-paused={paused || reducedMotion}>
+        <span aria-hidden="true" className={styles.words} data-phase={reducedMotion ? "hold" : frame.phase}>
           {/* Reserve every phrase, including its wrapped height on small screens. */}
-          {PHRASES.map((word) => <span key={word} className={styles.reserve}>{word}<span className={styles.caret} /></span>)}
+          {PHRASES.map((word) => <span key={word} className={styles.reserve}>Find {word}<span className={styles.caret} /></span>)}
           <span className={styles.current}>
+            Find{" "}
             <span className={styles.text}>
               <span className={styles.selection} />
               <span className={styles.letters}>
@@ -63,17 +62,6 @@ export function HeroHeadline() {
           </span>
         </span>
       </h1>
-      <button
-        type="button"
-        className={styles.toggle}
-        onClick={() => setPaused((value) => !value)}
-        aria-label={paused ? "Resume headline animation" : "Pause headline animation"}
-        title={paused ? "Resume headline animation" : "Pause headline animation"}
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-          {paused ? <path d="M3 1.5 10 6l-7 4.5z" /> : <><path d="M2 2h3v8H2z" /><path d="M7 2h3v8H7z" /></>}
-        </svg>
-      </button>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-.words { display: grid; margin-top: 0.12em; }
+.words { display: grid; }
 .reserve, .current { grid-area: 1 / 1; align-self: center; overflow-wrap: anywhere; }
 .reserve { visibility: hidden; }
 .text { position: relative; display: inline; }
@@ -16,24 +16,9 @@
 [data-phase="type"] .caret { animation: none; }
 [data-phase="select"] .current > .caret { visibility: hidden; }
 [data-phase="type"] .letter { animation: ink 140ms ease-out; }
-[data-paused="true"] .caret, [data-paused="true"] .letter { animation: none; }
-[data-paused="true"] .selection { transition: none; }
-.toggle {
-  position: absolute;
-  top: 0;
-  left: calc(50% + 4rem);
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  color: var(--muted-foreground);
-  cursor: pointer;
-}
-.toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 @keyframes blink { 0%, 45%, 100% { opacity: 1; } 55%, 95% { opacity: 0; } }
 @keyframes ink { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: blur(0); } }
 @media (prefers-reduced-motion: reduce) {
-  .toggle { display: none; }
   .current > .caret { visibility: hidden; }
   .letter, .current > .caret { animation: none; }
   .selection { display: none; }
