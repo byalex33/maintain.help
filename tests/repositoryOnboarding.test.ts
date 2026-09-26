@@ -50,3 +50,13 @@ it("retains explicit tags during reanalysis and clears them when no longer looki
   expect(applyMaintainerCategoryOverride([], { status: "NEED_PR_REVIEWERS", skillsWanted: ["Docs"] }).map((c) => c.category)).toEqual(["DOCUMENTATION", "PR_REVIEW"]);
   expect(applyMaintainerCategoryOverride([], { status: "NOT_LOOKING", skillsWanted: ["Docs"] })).toEqual([]);
 });
+
+it.each([false, true])("shows a friendly retry message for non-JSON responses, ok=%s", async (ok) => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok, json: async () => { throw new SyntaxError("Unexpected token '<'"); } }));
+  start(); enterRequest();
+  fireEvent.click(screen.getByRole("checkbox", { name: /Docs/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Publish repository" }));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("We couldn't save your repository. Please try again."));
+  expect(screen.queryByText("Your repository is listed.")).toBeNull();
+  expect(screen.getByRole("button", { name: "Publish repository" }).hasAttribute("disabled")).toBe(false);
+});

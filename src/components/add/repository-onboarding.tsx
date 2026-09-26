@@ -54,8 +54,10 @@ export function RepositoryOnboarding(props: Omit<ComponentProps<typeof AddReposi
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, onboarding: parsed.data }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "We couldn't save your repository. Please try again.");
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data || typeof data !== "object") {
+        throw new Error(typeof data?.error === "string" && data.error.trim() ? data.error : "We couldn't save your repository. Please try again.");
+      }
       if (typeof data.owner !== "string" || typeof data.repo !== "string") throw new Error("We couldn't confirm your listing. Please try again.");
       setDestination(`/${encodeURIComponent(data.owner)}/${encodeURIComponent(data.repo)}`);
     } catch (cause) {
