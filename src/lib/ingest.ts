@@ -11,7 +11,7 @@ import type { RawRepositoryData } from "@/lib/github/types";
 import { repositoryCanonicalKey, repositoryNameFilter } from "@/lib/repositoryIdentity";
 import { claimValidSince } from "@/lib/claims";
 import { randomUUID } from "node:crypto";
-import type { Repository } from "@/generated/prisma/client";
+import type { Prisma, Repository } from "@/generated/prisma/client";
 
 export class RepositoryModerationError extends Error {}
 export class RepositoryAnalysisBusyError extends Error {}
@@ -24,7 +24,47 @@ class RepositoryIdentityChangedError extends Error {
 
 const HOUR = 60 * 60 * 1000;
 
-async function cachedRepository(listing: Repository, submittedById?: string) {
+interface VerifiedMaintainer { githubId: number; userId: string; githubLogin: string }
+interface IngestOptions { submittedById?: string; verifiedMaintainer?: VerifiedMaintainer }
+
+// Bind the user's permission check to the same repository that analysis fetched.
+function assertSameRepository(githubId: number | bigint, verifiedMaintainer?: VerifiedMaintainer) {
+  if (verifiedMaintainer && String(githubId) !== String(verifiedMaintainer.githubId)) {
+    throw new RepositoryModerationError("The repository changed while it was being added. Please try again.");
+  }
+}
+
+async function recordVerifiedMaintainer(tx: Prisma.TransactionClient, repositoryId: string, verifiedMaintainer: VerifiedMaintainer, now: Date) {
+  const { userId, githubLogin } = verifiedMaintainer;
+  // A GitHub rename must not leave two verified identities for one local user.
+  await tx.repositoryMaintainer.updateMany({
+    where: { repositoryId, userId, githubLogin: { not: githubLogin } },
+    data: { userId: null, verifiedAt: null },
+  });
+  await tx.repositoryMaintainer.upsert({
+    where: { repositoryId_githubLogin: { repositoryId, githubLogin } },
+    create: { repositoryId, githubLogin, userId, role: "maintainer", verifiedAt: now, isActive: true },
+    update: { userId, verifiedAt: now },
+  });
+}
+
+async function cachedRepository(listing: Repository, options: IngestOptions) {
+  const { submittedById, verifiedMaintainer } = options;
+  if (verifiedMaintainer) {
+    assertSameRepository(listing.githubId, verifiedMaintainer);
+    return db.$transaction(async (tx) => {
+      // Claims take this same row lock; recheck moderation before recording the maintainer.
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "Repository" WHERE id = ${listing.id} AND "isIndexed" AND NOT "isLocked" FOR UPDATE
+      `;
+      if (!locked.length) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
+      if (!listing.submittedById && submittedById) {
+        await tx.repository.updateMany({ where: { id: listing.id, submittedById: null }, data: { submittedById } });
+      }
+      await recordVerifiedMaintainer(tx, listing.id, verifiedMaintainer, new Date());
+      return listing;
+    });
+  }
   if (!listing.submittedById && submittedById) {
     await db.repository.updateMany({
       where: { id: listing.id, submittedById: null, isIndexed: true, isLocked: false },
@@ -41,13 +81,13 @@ async function cachedRepository(listing: Repository, submittedById?: string) {
  * maintainer status as the source of truth — this only refreshes the
  * underlying evidence and metrics.
  */
-export async function ingestRepository(owner: string, repo: string, options: { submittedById?: string } = {}) {
+export async function ingestRepository(owner: string, repo: string, options: IngestOptions = {}) {
   const listing = await db.repository.findFirst({ where: repositoryNameFilter(owner, repo) });
   if (listing && (!listing.isIndexed || listing.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
   if (listing?.analysisError && listing.nextAnalysisAt && listing.nextAnalysisAt > new Date()) {
     throw new RepositoryAnalysisBusyError("This repository is waiting for its next analysis retry.");
   }
-  if (listing?.lastAnalyzedAt && !listing.isFixture && listing.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(listing, options.submittedById);
+  if (listing?.lastAnalyzedAt && !listing.isFixture && listing.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(listing, options);
 
   const key = `${owner}/${repo}`.toLowerCase();
   const token = randomUUID();
@@ -65,8 +105,9 @@ export async function ingestRepository(owner: string, repo: string, options: { s
     // Another worker may have completed between our initial read and lease acquisition.
     const latest = await db.repository.findFirst({ where: repositoryNameFilter(owner, repo) });
     if (latest && (!latest.isIndexed || latest.isLocked)) throw new RepositoryModerationError("This repository was deleted or locked by a moderator.");
-    if (latest?.lastAnalyzedAt && !latest.isFixture && latest.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(latest, options.submittedById);
+    if (latest?.lastAnalyzedAt && !latest.isFixture && latest.lastAnalyzedAt.getTime() > Date.now() - HOUR) return cachedRepository(latest, options);
     const raw = await fetchRepositoryData(owner, repo);
+    assertSameRepository(raw.githubId, options.verifiedMaintainer);
     return await saveRepository(raw, options, key, token);
   } catch (error) {
     if (error instanceof RepositoryAnalysisBusyError || error instanceof RepositoryModerationError) throw error;
@@ -97,7 +138,7 @@ export async function ingestRepository(owner: string, repo: string, options: { s
   }
 }
 
-async function saveRepository(raw: RawRepositoryData, options: { submittedById?: string }, key: string, token: string) {
+async function saveRepository(raw: RawRepositoryData, options: IngestOptions, key: string, token: string) {
   return db.$transaction(async (tx) => {
     const lease = await tx.$queryRaw<{ key: string }[]>`
       SELECT key FROM "RepositoryAnalysisLease" WHERE key = ${key} AND token = ${token} AND "expiresAt" > NOW() FOR UPDATE
@@ -180,6 +221,7 @@ async function saveRepository(raw: RawRepositoryData, options: { submittedById?:
       update: { ...values, ...(options.submittedById && !existing?.submittedById ? { submittedById: options.submittedById } : {}) },
     });
     await persistRepositoryAnalysis(tx, saved.id, raw, analysis, { now });
+    if (options.verifiedMaintainer) await recordVerifiedMaintainer(tx, saved.id, options.verifiedMaintainer, now);
     return saved;
   }, { timeout: 30_000 });
 }
