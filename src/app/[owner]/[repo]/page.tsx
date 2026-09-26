@@ -9,6 +9,8 @@ import { UpvoteButton } from "@/components/repo/upvote-button";
 import { StatusBadge, ConfidenceBadge } from "@/components/repo/status-badge";
 import { EvidenceCard } from "@/components/repo/evidence-card";
 import { ActivityCharts } from "@/components/repo/activity-charts";
+import { ActivityTimeline } from "@/components/repo/activity-timeline";
+import { getRepositoryActivity } from "@/lib/repositoryActivity";
 import { ContributorsList } from "@/components/repo/contributors-list";
 import { OpenOpportunities } from "@/components/repo/open-opportunities";
 import { ClaimBanner } from "@/components/repo/claim-banner";
@@ -215,6 +217,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
               </dl>
               <ActivityCharts snapshots={repository.metricSnapshots} />
             </> : <p className="rounded-2xl border border-dashed border-neutral-300 p-6 text-sm text-neutral-500 dark:border-neutral-700">Activity will appear after this repository has been analysed.</p>}
+            <ActivityTimeline events={getRepositoryActivity(repository)} lastAnalyzedAt={repository.lastAnalyzedAt?.toISOString() ?? null} />
           </section>
 
           {!repository.isArchived ? <OpenOpportunities issues={repository.issues} /> : null}

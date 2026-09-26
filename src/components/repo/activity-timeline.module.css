@@ -1,0 +1,30 @@
+.event:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 2rem;
+  bottom: 0;
+  left: 1rem;
+  width: 1px;
+  background: var(--border);
+  transform-origin: top;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .event {
+    animation: appear 240ms ease-out both;
+  }
+
+  .event:not(:last-child)::before {
+    animation: connect 300ms ease-out both;
+  }
+}
+
+@keyframes appear {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes connect {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
