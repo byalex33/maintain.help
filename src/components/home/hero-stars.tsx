@@ -11,9 +11,9 @@ function starRandom(sample: number) {
   return ((value ^ (value >>> 15)) >>> 0) / 4294967296;
 }
 
-const stars = Array.from({ length: 72 }, (_, index) => {
+const stars = Array.from({ length: 110 }, (_, index) => {
   const sample = index * 5;
-  const size = 1 + starRandom(sample + 2) ** 3 * 2;
+  const size = 1 + starRandom(sample + 2) ** 3 * 2.2;
   return {
     left: `${starRandom(sample) * 100}%`,
     top: `${starRandom(sample + 1) * 100}%`,
@@ -21,6 +21,7 @@ const stars = Array.from({ length: 72 }, (_, index) => {
     height: size,
     animationDelay: `${-starRandom(sample + 3) * 13}s`,
     animationDuration: `${5 + starRandom(sample + 4) * 7}s`,
+    boxShadow: size > 2.4 ? "0 0 6px currentColor" : undefined,
   } satisfies CSSProperties;
 });
 
@@ -30,6 +31,7 @@ export function HeroStars() {
       {stars.map((style, index) => (
         <span key={index} className={styles.star} style={style} />
       ))}
+      <span className={styles.meteor} />
       <span className={styles.meteor} />
       <span className={styles.meteor} />
       <span className={styles.meteor} />

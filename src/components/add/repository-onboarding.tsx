@@ -17,9 +17,9 @@ const intentions = [
 ] as const;
 type Tag = typeof HELP_TAGS[number]["id"];
 
-export function RepositoryOnboarding(props: Omit<ComponentProps<typeof AddRepositoryForm>, "onSelect">) {
+export function RepositoryOnboarding({ initialUrl = "", ...props }: Omit<ComponentProps<typeof AddRepositoryForm>, "onSelect"> & { initialUrl?: string }) {
   const [step, setStep] = useState(0);
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl);
   const [intent, setIntent] = useState<typeof intentions[number]["value"]>("NEED_CONTRIBUTORS");
   const [message, setMessage] = useState("");
   const [tags, setTags] = useState<Tag[]>([]);
