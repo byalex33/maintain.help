@@ -51,8 +51,9 @@ function toRow(repo: RepositoryCard, featured = false): HelpRequestRow {
 export default async function HomePage() {
   const sections = await getHomepageSections();
   const featuredId = sections.featured?.id;
-  const seeking = sections.seekingMaintainers.map((repo) => toRow(repo, repo.id === featuredId));
-  const asking = sections.activelyAsking.map((repo) => toRow(repo, repo.id === featuredId));
+  const pinFeatured = (rows: HelpRequestRow[]) => [...rows.filter((row) => row.featured), ...rows.filter((row) => !row.featured)];
+  const seeking = pinFeatured(sections.seekingMaintainers.map((repo) => toRow(repo, repo.id === featuredId)));
+  const asking = pinFeatured(sections.activelyAsking.map((repo) => toRow(repo, repo.id === featuredId)));
   // Pin the admin-featured repository first, then alternate the two statuses.
   const interleaved = Array.from({ length: Math.max(seeking.length, asking.length) }, (_, i) => [seeking[i], asking[i]]).flat();
   const all = [...(sections.featured ? [toRow(sections.featured, true)] : []), ...interleaved]
