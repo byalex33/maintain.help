@@ -8,15 +8,20 @@ import { auth, getGitHubAccessToken } from "@/lib/auth";
 import { getAddablePublicRepositories, getGitHubOrganizations } from "@/lib/github/ownedRepositories";
 
 import { organizationAccessRequired } from "@/lib/github/organizationAccess";
+import { parseGitHubRepoUrl } from "@/lib/github/parseUrl";
 
 export const metadata: Metadata = {
   title: "Add a repository",
   description: "Add a GitHub repository to maintain.help for analysis.",
 };
 
-export default async function AddRepositoryPage() {
+export default async function AddRepositoryPage({ searchParams }: PageProps<"/add">) {
+  const repo = (await searchParams).repo;
+  const parsedRepo = typeof repo === "string" ? parseGitHubRepoUrl(repo) : null;
+  const initialUrl = parsedRepo ? `https://github.com/${parsedRepo.owner}/${parsedRepo.repo}` : "";
+  const addPath = parsedRepo ? `/add?${new URLSearchParams({ repo: `${parsedRepo.owner}/${parsedRepo.repo}` })}` : "/add";
   const session = await auth();
-  if (!session) redirect("/sign-in?callbackUrl=%2Fadd");
+  if (!session) redirect(`/sign-in?callbackUrl=${encodeURIComponent(addPath)}`);
   let repositories: Awaited<ReturnType<typeof getAddablePublicRepositories>> = [];
   let error: string | null = null;
   let organizations: string[] = [];
@@ -51,12 +56,13 @@ export default async function AddRepositoryPage() {
         {error ? (
           <div className="space-y-3">
             <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            <Link href="/sign-in?callbackUrl=%2Fadd" className="text-sm underline">Sign in with GitHub</Link>
+            <Link href={`/sign-in?callbackUrl=${encodeURIComponent(addPath)}`} className="text-sm underline">Sign in with GitHub</Link>
             <form action="/add" method="get">
+              {parsedRepo ? <input type="hidden" name="repo" value={`${parsedRepo.owner}/${parsedRepo.repo}`} /> : null}
               <Button type="submit" variant="link" className="h-auto p-0">Try again</Button>
             </form>
           </div>
-        ) : <RepositoryOnboarding repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} needsOrganizationAccess={needsOrganizationAccess} />}
+        ) : <RepositoryOnboarding initialUrl={initialUrl} repositories={repositories} organizations={organizations} personalLogin={session.user.githubLogin} organizationsUnavailable={organizationsUnavailable} needsOrganizationAccess={needsOrganizationAccess} />}
       </div>
     </div>
   );

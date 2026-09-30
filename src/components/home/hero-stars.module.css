@@ -4,8 +4,8 @@
   overflow: hidden;
   pointer-events: none;
   color: #52667b;
-  /* Keep the sky quieter behind the heading and search. */
-  mask-image: linear-gradient(105deg, #0003 10%, #0008 50%, #000 85%);
+  /* Keep the sky quieter behind the heading and search, and fade it out at the edges. */
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #0004 20%, #000 75%, transparent 100%);
 }
 
 .star {
@@ -39,34 +39,43 @@
   height: 3px;
   border-radius: 50%;
   background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
-.meteor:nth-last-child(2) {
-  top: 35%;
-  left: 30%;
+.meteor:nth-last-child(3) {
+  top: 30%;
+  left: 22%;
   width: 100px;
   animation-delay: 5s;
   animation-duration: 17s;
 }
 
-.meteor:last-child {
-  top: 3%;
-  left: 78%;
+.meteor:nth-last-child(2) {
+  top: 4%;
+  left: 80%;
   width: 120px;
   animation-delay: 9s;
   animation-duration: 19s;
 }
 
+.meteor:last-child {
+  top: 16%;
+  left: 8%;
+  width: 130px;
+  animation-delay: 14s;
+  animation-duration: 23s;
+}
+
 @keyframes twinkle {
-  from { opacity: 0.2; }
-  to { opacity: 0.8; }
+  from { opacity: 0.15; }
+  to { opacity: 0.9; }
 }
 
 @keyframes shoot {
   0% { opacity: 0; transform: translate(-120px, -75px) rotate(32deg); }
-  2% { opacity: 0.8; }
-  10% { opacity: 0; transform: translate(260px, 162px) rotate(32deg); }
-  100% { opacity: 0; transform: translate(260px, 162px) rotate(32deg); }
+  2% { opacity: 0.9; }
+  10% { opacity: 0; transform: translate(320px, 200px) rotate(32deg); }
+  100% { opacity: 0; transform: translate(320px, 200px) rotate(32deg); }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,7 +83,6 @@
 }
 
 @media (max-width: 639px) {
-  .sky { mask-image: linear-gradient(105deg, #0003, #0009); }
   .star:nth-child(even) { display: none; }
 }
 
